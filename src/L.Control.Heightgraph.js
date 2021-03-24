@@ -74,6 +74,9 @@ import {
             this._highlightStyle = this.options.highlightStyle || { color: 'red' }
             this._graphStyle = this.options.graphStyle || {}
             this._dragCache = {}
+            this._xTicks = this.options.xTicks;
+            this._yTicks = this.options.yTicks;
+            this._translation = this.options.translation;
         },
         onAdd(map) {
             let container = this._container = L.DomUtil.create("div", "heightgraph")
@@ -710,11 +713,11 @@ import {
             } else {
                 this._xAxis.tickFormat(d => format(".0f")(d) + " km");
             }
-            this._xAxis.ticks(this.options.xTicks ? Math.pow(2, this.options.xTicks) : Math.round(this._svgWidth / 75), "s");
+            this._xAxis.ticks(this._xTicks ? Math.pow(2, this._xTicks) : Math.round(this._svgWidth / 75), "s");
             this._yAxis = axisLeft()
                 .scale(this._y)
                 .tickFormat(d => d + " m");
-            this._yAxis.ticks(this.options.yTicks ? Math.pow(2, this.options.yTicks) : Math.round(this._svgHeight / 30), "s");
+            this._yAxis.ticks(this._yTicks ? Math.pow(2, this._yTicks) : Math.round(this._svgHeight / 30), "s");
         },
         /**
          * Appends a background and adds mouse handlers
@@ -1152,8 +1155,8 @@ import {
          * Checks the user passed translations, if they don't exist, fallback to the default translations
          */
         _getTranslation(key) {
-            if (this.options.translation[key])
-                return this.options.translation[key];
+            if (this._translation[key])
+                return this._translation[key];
             if (this._defaultTranslation[key])
                 return this._defaultTranslation[key];
             console.error("Unexpected error when looking up the translation for " + key);
