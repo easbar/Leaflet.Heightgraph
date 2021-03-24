@@ -77,6 +77,7 @@ import {
             this._xTicks = this.options.xTicks;
             this._yTicks = this.options.yTicks;
             this._translation = this.options.translation;
+            this._currentSelection = this.options.selectedAttributeIdx;
         },
         onAdd(map) {
             let container = this._container = L.DomUtil.create("div", "heightgraph")
@@ -121,8 +122,8 @@ import {
                 this._svg.selectAll("*")
                     .remove();
             }
-            if (!data || this.options.selectedAttributeIdx >= data.length) {
-                this.options.selectedAttributeIdx = 0;
+            if (!data || this._currentSelection >= data.length) {
+                this._currentSelection = 0;
             }
             this._removeMarkedSegmentsOnMap();
             this._resetDrag(true);
@@ -134,7 +135,7 @@ import {
             this._appendScales();
             this._appendGrid();
             if (Object.keys(data).length !== 0) {
-                this._createChart(this.options.selectedAttributeIdx);
+                this._createChart(this._currentSelection);
             }
             this._createSelectionBox();
         },
@@ -876,12 +877,12 @@ import {
                     .attr("text-anchor", "end")
             }
 
-            chooseSelection(this.options.selectedAttributeIdx);
+            chooseSelection(this._currentSelection);
 
             let arrowRight = () => {
-                let idx = this.options.selectedAttributeIdx += 1
+                let idx = this._currentSelection += 1
                 if (idx === this._categories.length) {
-                    this.options.selectedAttributeIdx = idx = 0
+                    this._currentSelection = idx = 0
                 }
                 chooseSelection(idx)
                 this._removeChart()
@@ -890,9 +891,9 @@ import {
             }
 
             let arrowLeft = () => {
-                let idx = this.options.selectedAttributeIdx -= 1
+                let idx = this._currentSelection -= 1
                 if (idx === -1) {
-                    this.options.selectedAttributeIdx = idx = this._categories.length - 1
+                    this._currentSelection = idx = this._categories.length - 1
                 }
                 chooseSelection(idx)
                 this._removeChart()
@@ -906,8 +907,8 @@ import {
         _createLegend() {
             const data = []
             if (this._categories.length > 0) {
-                for (let item in this._categories[this.options.selectedAttributeIdx].legend) {
-                    data.push(this._categories[this.options.selectedAttributeIdx].legend[item]);
+                for (let item in this._categories[this._currentSelection].legend) {
+                    data.push(this._categories[this._currentSelection].legend[item]);
                 }
             }
             const height = this._height - this._margin.bottom
@@ -1083,9 +1084,9 @@ import {
                 ll = item.latlng, areaIdx = item.areaIdx, type = item.type
             const boxWidth = this._dynamicBoxSize(".focusbox text")[1] + 10
             if (areaIdx === 0) {
-                areaLength = this._categories[this.options.selectedAttributeIdx].distances[areaIdx];
+                areaLength = this._categories[this._currentSelection].distances[areaIdx];
             } else {
-                areaLength = this._categories[this.options.selectedAttributeIdx].distances[areaIdx] - this._categories[this.options.selectedAttributeIdx].distances[areaIdx - 1];
+                areaLength = this._categories[this._currentSelection].distances[areaIdx] - this._categories[this._currentSelection].distances[areaIdx - 1];
             }
             if (showMapMarker) {
                 this._showMapMarker(ll, alt, type);
