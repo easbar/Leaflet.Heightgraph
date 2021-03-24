@@ -91,7 +91,7 @@ import {
                 .attr("width", this._width)
                 .attr("height", this._height).append("g")
                 .attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")")
-            if (this.options.expand) this._expand();
+            if (this.options.expand) this._expandContainer();
             return container;
         },
         onRemove(map) {
@@ -156,8 +156,8 @@ import {
                 L.DomEvent.on(this._container, 'click', L.DomEvent.stopPropagation);
             }
             if (this.options.expandControls) {
-                L.DomEvent.on(this._button, 'click', this._expand, this);
-                L.DomEvent.on(this._closeButton, 'click', this._expand, this);
+                L.DomEvent.on(this._button, 'click', this._expandContainer, this);
+                L.DomEvent.on(this._closeButton, 'click', this._expandContainer, this);
             }
         },
         _dragHandler() {
@@ -266,7 +266,7 @@ import {
         /**
          * Expand container when button clicked and shrink when close-Button clicked
          */
-        _expand() {
+        _expandContainer() {
             if (this.options.expandControls !== true) {
                 // always expand, never collapse
                 this._showState = false;
