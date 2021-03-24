@@ -591,7 +591,6 @@ import {
          *  Creates horizontal Line for dragging
          */
         _createHorizontalLine() {
-            const self = this
             this._horizontalLine = this._svg.append("line")
                 .attr("class", "horizontalLine")
                 .attr("x1", 0)
@@ -615,15 +614,15 @@ import {
                     "size": 100
                 }
             ]
-            const dragstart = function (d) {
-                select(this).raise().classed("active", true)
+            const dragstart = (element) => {
+                select(element).raise().classed("active", true)
                 select(".horizontalLine").raise().classed("active", true)
             }
 
-            const dragged = function (d) {
-                const maxY = self._svgHeight
-                let eventY = mouse(self._container)[1] - 10
-                select(this)
+            const dragged = (element) => {
+                const maxY = this._svgHeight
+                let eventY = mouse(this._container)[1] - 10
+                select(element)
                     .attr("transform", d => "translate(" + d.x + "," + (eventY < 0 ? 0
                         : eventY > maxY ? maxY
                             : eventY) + ") rotate(" + d.angle + ")");
@@ -631,24 +630,24 @@ import {
                     .attr("y1", (eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)))
                     .attr("y2", (eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)));
                 if (eventY >= maxY) {
-                    self._highlightedCoords = [];
+                    this._highlightedCoords = [];
                 } else {
-                    self._highlightedCoords = self._findCoordsForY(eventY);
+                    this._highlightedCoords = this._findCoordsForY(eventY);
                 }
                 select(".horizontalLineText")
                     .attr("y", (eventY <= 10 ? 0 : (eventY > maxY ? maxY - 10 : eventY - 10)))
-                    .text(format(".0f")(self._y.invert((eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)))) + " m");
-                self._removeMarkedSegmentsOnMap();
-                self._markSegmentsOnMap(self._highlightedCoords);
+                    .text(format(".0f")(this._y.invert((eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)))) + " m");
+                this._removeMarkedSegmentsOnMap();
+                this._markSegmentsOnMap(this._highlightedCoords);
             }
 
-            const dragend = function (d) {
-                select(this)
+            const dragend = (element) => {
+                select(element)
                     .classed("active", false);
                 select(".horizontalLine")
                     .classed("active", false);
-                self._removeMarkedSegmentsOnMap();
-                self._markSegmentsOnMap(self._highlightedCoords);
+                this._removeMarkedSegmentsOnMap();
+                this._markSegmentsOnMap(this._highlightedCoords);
             }
 
             const horizontalDrag = this._svg.selectAll(".horizontal-symbol").data(jsonTriangle).enter().append("path").
@@ -657,7 +656,11 @@ import {
                 .attr("transform", d => "translate(" + d.x + "," + d.y + ") rotate(" + d.angle + ")")
                 .attr("id", d => d.id)
                 .style("fill", d => d.color)
-                .call(drag().on("start", dragstart).on("drag", dragged).on("end", dragend))
+                .call(drag()
+                    .on("start", function(d) { dragstart(this); })
+                    .on("drag", function(d) { dragged(this); })
+                    .on("end", function(d) { dragend(this); })
+                )
         },
         /**
          * Highlights segments on the map above given elevation value
@@ -772,12 +775,11 @@ import {
          */
         _appendAreas(block, idx, eleIdx) {
             const c = this._categories[idx].attributes[eleIdx].color
-            const self = this
             const area = this._area = d3Area().x(d => {
-                const xDiagonalCoordinate = self._x(d.position)
+                const xDiagonalCoordinate = this._x(d.position)
                 d.xDiagonalCoordinate = xDiagonalCoordinate
                 return xDiagonalCoordinate
-            }).y0(this._svgHeight).y1(d => self._y(d.altitude)).curve(curveLinear)
+            }).y0(this._svgHeight).y1(d => this._y(d.altitude)).curve(curveLinear)
             this._areapath = this._svg.append("path")
                 .attr("class", "area");
             this._areapath.datum(block)
@@ -801,7 +803,6 @@ import {
          * Appends a selection box for different blocks
          */
         _createSelectionBox() {
-            const self = this
             const svg = select(this._container).select("svg")
             const width = this._width - this._margin.right,
                 height = this._height - this._margin.bottom
@@ -830,7 +831,7 @@ import {
             // select again
             selectionSign = svg.selectAll(".select-symbol").data(jsonTriangles)
             // then add only if needed
-            if (self._data.length > 1) {
+            if (this._data.length > 1) {
                 selectionSign.enter().
                     append("path").
                     merge(selectionSign).
@@ -842,25 +843,25 @@ import {
                         if (d.id === "rightArrowSelection") arrowRight()
                         if (d.id === "leftArrowSelection") arrowLeft()
                         // fake a drag event from cache values to keep selection
-                        self._gotDragged = true
-                        self._dragStartCoords = self._dragCache.start
-                        self._dragCurrentCoords = self._dragCache.end
+                        this._gotDragged = true
+                        this._dragStartCoords = this._dragCache.start
+                        this._dragCurrentCoords = this._dragCache.end
                     })
             }
             const chooseSelection = (id) => {
-                if (self._selectionText) self._selectionText.remove();
+                if (this._selectionText) this._selectionText.remove();
                 // after cleaning up, there is nothing left to do if there is no data
-                if (self._categories.length === 0) return;
-                const type = self._categories[id].info
-                if (typeof self.options.chooseSelectionCallback === "function") {
-                    self.options.chooseSelectionCallback(id, type);
+                if (this._categories.length === 0) return;
+                const type = this._categories[id].info
+                if (typeof this.options.chooseSelectionCallback === "function") {
+                    this.options.chooseSelectionCallback(id, type);
                 }
                 const data = [
                     {
                         "selection": type.text
                     }
                 ]
-                self._selectionText = svg.selectAll('selection_text')
+                this._selectionText = svg.selectAll('selection_text')
                     .data(data)
                     .enter()
                     .append('text')
@@ -875,32 +876,31 @@ import {
             chooseSelection(this.options.selectedAttributeIdx);
 
             let arrowRight = () => {
-                let idx = self.options.selectedAttributeIdx += 1
-                if (idx === self._categories.length) {
-                    self.options.selectedAttributeIdx = idx = 0
+                let idx = this.options.selectedAttributeIdx += 1
+                if (idx === this._categories.length) {
+                    this.options.selectedAttributeIdx = idx = 0
                 }
                 chooseSelection(idx)
-                self._removeChart()
-                self._removeMarkedSegmentsOnMap()
-                self._createChart(idx)
+                this._removeChart()
+                this._removeMarkedSegmentsOnMap()
+                this._createChart(idx)
             }
 
             let arrowLeft = () => {
-                let idx = self.options.selectedAttributeIdx -= 1
+                let idx = this.options.selectedAttributeIdx -= 1
                 if (idx === -1) {
-                    self.options.selectedAttributeIdx = idx = self._categories.length - 1
+                    this.options.selectedAttributeIdx = idx = this._categories.length - 1
                 }
                 chooseSelection(idx)
-                self._removeChart()
-                self._removeMarkedSegmentsOnMap()
-                self._createChart(idx)
+                this._removeChart()
+                this._removeMarkedSegmentsOnMap()
+                this._createChart(idx)
             }
         },
         /**
          * Creates and appends legend to chart
          */
         _createLegend() {
-            const self = this
             const data = []
             if (this._categories.length > 0) {
                 for (let item in this._categories[this.options.selectedAttributeIdx].legend) {
@@ -944,7 +944,7 @@ import {
                 .attr('y', 6 * 7)
                 .text((d, i) => {
                     const textProp = d.text
-                    self._boxBoundY = (height - (2 * height / 3) + 7) * i;
+                    this._boxBoundY = (height - (2 * height / 3) + 7) * i;
                     return textProp;
                 });
             let legendHover = this._svg.selectAll('.legend-hover')
@@ -992,15 +992,14 @@ import {
          * Creates top border line on graph
          */
         _createBorderTopLine() {
-            const self = this
             const data = this._areasFlattended
             const borderTopLine = line()
                 .x(d => {
-                    const x = self._x
+                    const x = this._x
                     return x(d.position)
                 })
                 .y(d => {
-                    const y = self._y
+                    const y = this._y
                     return y(d.altitude)
                 })
                 .curve(curveBasis)
