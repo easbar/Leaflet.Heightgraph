@@ -83,12 +83,12 @@ import {
             this._expandCallback = this.options.expandCallback;
         },
         onAdd(map) {
-            let container = this._container = L.DomUtil.create("div", "heightgraph")
-            L.DomEvent.disableClickPropagation(container);
+            this._container = L.DomUtil.create("div", "heightgraph")
+            L.DomEvent.disableClickPropagation(this._container);
             if (this._expandControls) {
-                let buttonContainer = this._button = L.DomUtil.create('div', "heightgraph-toggle", container);
-                const link = L.DomUtil.create("a", "heightgraph-toggle-icon", buttonContainer)
-                const closeButton = this._closeButton = L.DomUtil.create("a", "heightgraph-close-icon", container)
+                this._button = L.DomUtil.create('div', "heightgraph-toggle", this._container);
+                L.DomUtil.create("a", "heightgraph-toggle-icon", this._button)
+                this._closeButton = L.DomUtil.create("a", "heightgraph-close-icon", this._container)
             }
             this._showState = false;
             this._initToggle();
@@ -100,7 +100,7 @@ import {
                 .attr("height", this._height).append("g")
                 .attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")")
             if (this._expand) this._expandContainer();
-            return container;
+            return this._container;
         },
         onRemove(map) {
             this._removeMarkedSegmentsOnMap();
@@ -113,13 +113,9 @@ import {
          */
         addData(data) {
             this._addData(data)
-        }, /**
-         * Internal function. Overloads public addData().
-         * Call with resize = true when resizing instead of actually adding data.
-         * TODO: this should be refactored to avoid calling addData on resize
-         * @param data
-         * @param resize
-         * @private
+        },
+        /**
+         * TODO: this should be refactored to avoid calling _addData on resize
          */
         _addData(data) {
             if (this._svg !== undefined) {
