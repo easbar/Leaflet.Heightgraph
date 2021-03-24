@@ -64,13 +64,13 @@ import {
             type: "Type",
             legend: "Legend"
         },
-        _init_options() {
+        initialize(_options) {
+            // options are meant to be only read here. manipulating options should have no effect after the
+            // heightgraph was created/populated, unless there are dedicated methods for this (like resize)
             this._margin = this.options.margins;
             this._width = this.options.width;
             this._height = this.options.height;
             this._mappings = this.options.mappings;
-            this._svgWidth = this._width - this._margin.left - this._margin.right;
-            this._svgHeight = this._height - this._margin.top - this._margin.bottom;
             this._highlightStyle = this.options.highlightStyle || { color: 'red' }
             this._graphStyle = this.options.graphStyle || {}
             this._dragCache = {}
@@ -78,24 +78,28 @@ import {
             this._yTicks = this.options.yTicks;
             this._translation = this.options.translation;
             this._currentSelection = this.options.selectedAttributeIdx;
+            this._expand = this.options.expand;
+            this._expandControls = this.options.expandControls;
+            this._expandCallback = this.options.expandCallback;
         },
         onAdd(map) {
             let container = this._container = L.DomUtil.create("div", "heightgraph")
             L.DomEvent.disableClickPropagation(container);
-            if (this.options.expandControls) {
+            if (this._expandControls) {
                 let buttonContainer = this._button = L.DomUtil.create('div', "heightgraph-toggle", container);
                 const link = L.DomUtil.create("a", "heightgraph-toggle-icon", buttonContainer)
                 const closeButton = this._closeButton = L.DomUtil.create("a", "heightgraph-close-icon", container)
             }
             this._showState = false;
             this._initToggle();
-            this._init_options();
+            this._svgWidth = this._width - this._margin.left - this._margin.right;
+            this._svgHeight = this._height - this._margin.top - this._margin.bottom;
             // Note: this._svg really contains the <g> inside the <svg>
             this._svg = select(this._container).append("svg").attr("class", "heightgraph-container")
                 .attr("width", this._width)
                 .attr("height", this._height).append("g")
                 .attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")")
-            if (this.options.expand) this._expandContainer();
+            if (this._expand) this._expandContainer();
             return container;
         },
         onRemove(map) {
@@ -129,7 +133,6 @@ import {
             this._resetDrag(true);
 
             this._data = data;
-            this._init_options();
             this._prepareData();
             this._calculateElevationBounds();
             this._appendScales();
@@ -141,14 +144,16 @@ import {
         },
         resize(size) {
             if (size.width)
-                this.options.width = size.width;
+                this._width = size.width;
             if (size.height)
-                this.options.height = size.height;
+                this._height = size.height;
 
             // Resize the <svg> along with its container
             select(this._container).selectAll("svg")
-                .attr("width", this.options.width)
-                .attr("height", this.options.height);
+                .attr("width", this._width)
+                .attr("height", this._height);
+            this._svgWidth = this._width - this._margin.left - this._margin.right;
+            this._svgHeight = this._height - this._margin.top - this._margin.bottom;
 
             // Re-add the data to redraw the chart.
             this._addData(this._data);
@@ -159,7 +164,7 @@ import {
             } else {
                 L.DomEvent.on(this._container, 'click', L.DomEvent.stopPropagation);
             }
-            if (this.options.expandControls) {
+            if (this._expandControls) {
                 L.DomEvent.on(this._button, 'click', this._expandContainer, this);
                 L.DomEvent.on(this._closeButton, 'click', this._expandContainer, this);
             }
@@ -271,7 +276,7 @@ import {
          * Expand container when button clicked and shrink when close-Button clicked
          */
         _expandContainer() {
-            if (this.options.expandControls !== true) {
+            if (this._expandControls !== true) {
                 // always expand, never collapse
                 this._showState = false;
             }
@@ -293,8 +298,8 @@ import {
                     .style("display", "none");
             }
             this._showState = !this._showState;
-            if (typeof this.options.expandCallback === "function") {
-                this.options.expandCallback(this._showState);
+            if (typeof this._expandCallback === "function") {
+                this._expandCallback(this._showState);
             }
         },
         /**
