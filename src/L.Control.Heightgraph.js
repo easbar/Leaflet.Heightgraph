@@ -79,15 +79,15 @@ import {HeightGraph} from "./heightgraph";
         /**
          * Creates a marker on the map while hovering
          * @param {Object} ll: actual coordinates of the route
-         * @param {Number} height: height as float
+         * @param {Number} elevation: height as float
          * @param {string} type: type of element
          */
-        _showMapMarker(ll, height, type) {
+        _showMapMarker(ll, elevation, type) {
             this._heightgraph._removeRouteMarker();
             if (ll) {
                 const layerPoint = this._map.latLngToLayerPoint(ll)
                 const svg = document.querySelector(".leaflet-overlay-pane svg");
-                this._heightgraph._drawRouteMarker(svg, layerPoint, height, type);
+                this._heightgraph._drawRouteMarker(svg, layerPoint, elevation, type);
             }
         },
         /**

@@ -13,8 +13,8 @@
         }
     </style>
 
-    <script src='https://api.mapbox.com/mapbox-gl-js/v1.13.0/mapbox-gl.js'></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v1.13.0/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v1.13.0/mapbox-gl.js'></script>
     <!-- todonow: remove leaflet dependency -->
     <script src="../node_modules/leaflet/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../src/L.Control.Heightgraph.css"/>
@@ -22,16 +22,18 @@
     <script type="text/javascript" src="../example/data_2.js"></script>
     <script type="text/javascript" src="../example/data_3.js"></script>
     <script type="text/javascript" src="../example/mappings.js"></script>
+    <script type="module" src="../src/MapboxHeightGraph.js"></script>
 
 </head>
 <body>
 <div id="overlay" style="position:absolute; bottom:10px; left:10px; background-color:white; width:100px; height:150px; z-index: 1000 ; opacity: 0.7">
-    <button onclick="changeData('1')">Data 1 <br>(4 cat)</button>
-    <button onclick="changeData('2')">Data 2 <br>(1 cat)</button>
-    <button onclick="changeData('3')">Data 3 <br>(1 different)</button>
-    <button onclick="changeData('4')">Data 4 <br>(empty)</button>
+    <button id="data1">Data 1 <br>(4 cat)</button>
+    <button id="data2">Data 2 <br>(1 cat)</button>
+    <button id="data3">Data 3 <br>(1 different)</button>
+    <button id="data4">Data 4 <br>(empty)</button>
 </div>
 <div id="map"></div>
 </body>
+<!-- todonow: change this to non-module to demonstrate it works? -->
 <script type="module" src="../example/mapbox.js" defer></script>
 </html>

@@ -168,10 +168,14 @@ export class HeightGraph {
             if (skipMapFitBounds !== true) {
                 // potential performance improvement:
                 // we could cache the full extend when addData() is called
-                let fullExtent = this._calculateFullExtent(this._areasFlattended);
-                if (fullExtent) this._fitMapBounds(fullExtent);
+                let bounds = this._getBounds();
+                if (bounds) this._fitMapBounds(bounds);
             }
         }
+    }
+
+    _getBounds = () => {
+        return this._calculateFullExtent(this._areasFlattended);
     }
 
     /**
@@ -181,7 +185,7 @@ export class HeightGraph {
         if (!this._dragStartCoords || !this._gotDragged) {
             this._dragStartCoords = null;
             this._gotDragged = false;
-            this._resetDrag();
+            this._resetDrag(false);
             return;
         }
         const item1 = this._findItemForX(this._dragStartCoords[0]),
@@ -426,7 +430,7 @@ export class HeightGraph {
     }
 
     // todonow: make 'static'?
-    _drawRouteMarker = (svg, layerPoint, height, type) => {
+    _drawRouteMarker = (svg, layerPoint, elevation, type) => {
         this._routeMarker = select(svg).append("g").attr('id', 'route-marker')
         const labelBox = this._routeMarker.append("g")
             .attr('class', 'height-focus label')
@@ -455,7 +459,7 @@ export class HeightGraph {
         labelBox.append("text")
             .attr("x", layerPoint.x + 5)
             .attr("y", normalizedY + 12)
-            .text(height + " m")
+            .text(elevation + " m")
             .attr("class", "tspan mouse-height-box-text");
         labelBox.append("text")
             .attr("x", layerPoint.x + 5)

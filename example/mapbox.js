@@ -1,47 +1,64 @@
 import {MapboxHeightGraph} from "../src/MapboxHeightGraph";
 
-const changeData = setNumber => {
-    let dataSet = setNumber === '1' ? geojson1 : setNumber === '2' ? geojson2 : setNumber === '3' ? geojson3 : []
+document.querySelector('#data1').addEventListener('click', e => changeData(1));
+document.querySelector('#data2').addEventListener('click', e => changeData(2));
+document.querySelector('#data3').addEventListener('click', e => changeData(3))
+document.querySelector('#data4').addEventListener('click', e => changeData(4));
+
+// todonow: mapMousemoveHandler & mapMouseoutHandler ?!
+export const changeData = setNumber => {
+    const dataSet = [geojson1, geojson2, geojson3, []][setNumber-1];
     drawGeoJson(dataSet);
-    // todonow: implement this
-    // if (dataSet.length !== 0) {
-    //     let newLayer = L.geoJson(dataSet)
-    //     newLayer.on({
-    //         'mousemove': onRoute,
-    //         'mouseout': outRoute,
-    //     })
-    //     let newBounds = newLayer.getBounds()
-    //     displayGroup.addLayer(newLayer)
-    //     map.fitBounds(newBounds)
-    // }
-    // hg.addData(dataSet);
+    hg.addData(dataSet);
+    hg._fitMapBounds(hg._heightgraph._getBounds());
 }
 
-mapboxgl.accessToken = 'pk.eyJ1IjoicmFuLWRvbSIsImEiOiJjanRsYnNpbG4wNHBrM3lxdXV2NWVoODluIn0.ji-ZxUwPS_MisOJIUgM1eQ';
 const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/streets-v11',
+    style: {
+        'version': 8,
+        'sources': {
+            'raster-tiles': {
+                'type': 'raster',
+                'tiles': [
+                    'https://a.tile.openstreetmap.de/{z}/{x}/{y}.png',
+                    'https://b.tile.openstreetmap.de/{z}/{x}/{y}.png',
+                    'https://c.tile.openstreetmap.de/{z}/{x}/{y}.png'
+                ],
+                'tileSize': 256,
+                'attribution': "Map data © <a href=\"https://openstreetmap.org\">OpenStreetMap</a> contributors"
+            }
+        },
+        'layers': [
+            {
+                'id': 'osm',
+                'type': 'raster',
+                'source': 'raster-tiles',
+            }
+        ]
+    },
     center: [8.108683, 47.32],
     zoom: 15
 });
 
-const heightgraph = new MapboxHeightGraph();
-map.addControl(heightgraph, 'bottom-right');
-heightgraph.addData(geojson1)
+const hg = new MapboxHeightGraph();
+map.addControl(hg, 'bottom-right');
+hg.addData(geojson1)
 
+const layers = [];
 const drawGeoJson = (geojson) => {
     for (let i = 0; i < geojson.length; i++) {
         const id = 'route-' + i
-        // todonow: what if we change to a smaller/bigger source?
-        if (map.getLayer(id))
-            map.removeLayer(id);
-        if (map.getSource(id))
-            map.removeSource(id);
-
+        layers.forEach(l => {
+            if (map.getLayer(l))
+                map.removeLayer(l);
+            if (map.getSource(l))
+                map.removeSource(l);
+        });
         map.addSource(id, {
             'type': 'geojson',
             'data': geojson[i]
-        });
+        })
         map.addLayer({
             'id': id,
             'type': 'line',
@@ -50,7 +67,8 @@ const drawGeoJson = (geojson) => {
                 'line-color': 'green',
                 'line-width': 4
             }
-        });
+        })
+        layers.push(id);
     }
 }
 map.on('load', function () {
@@ -60,3 +78,5 @@ const bounds = new mapboxgl.LngLatBounds(new mapboxgl.LngLat(8.108683, 47.323989
 map.fitBounds(bounds, {
     animate: false
 });
+
+hg.resize({width: 1000, height: 300})

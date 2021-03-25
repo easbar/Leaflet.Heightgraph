@@ -52,6 +52,10 @@ export class MapboxHeightGraph {
         this._heightgraph.addData(data);
     }
 
+    resize(size) {
+        this._heightgraph.resize(size);
+    }
+
     _fitMapBounds(bounds) {
         // todonow: incoming bounds should not be leaflet-specific
         bounds = new mapboxgl.LngLatBounds(bounds._southWest, bounds._northEast);
@@ -63,26 +67,27 @@ export class MapboxHeightGraph {
     /**
      * Creates a marker on the map while hovering
      * @param {Object} ll: actual coordinates of the route
-     * @param {Number} height: height as float
+     * @param {Number} elevation: elevation as float
      * @param {string} type: type of element
      * // todonow: duplicate docs (see leaflet version)
      */
-    _showMapMarker(ll, height, type) {
+    _showMapMarker(ll, elevation, type) {
         if (this._popup) {
             this._popup.remove();
             // this._svg.remove();
         }
         if (ll) {
             // todonow: adjust and use drawRouteMarker method (draw popup using svg instead of using default popup?)
+            // maybe we need to use a Control? or maybe we do not need this anyway? the popup also works?
             // this._svg = document.createElement('svg');
-            // this._heightgraph._drawRouteMarker(this._svg, layerPoint, height, type);
+            // this._heightgraph._drawRouteMarker(this._svg, {x: 0, y: 0}, elevation, type);
             this._popup = new mapboxgl.Popup({
                 closeButton: false,
             })
                 /// todonow: make ll independent of leaflet?
                 .setLngLat({lon: ll.lng, lat: ll.lat})
-                // .setDOMContent(svg)
-                .setHTML(`<p>${height}m</p><p></p>${type}</p>`)
+                // .setDOMContent(this._svg)
+                .setHTML(`<p>${elevation}m</p><p></p>${type}</p>`)
                 .setMaxWidth("300px")
                 .addTo(this._map);
         }
