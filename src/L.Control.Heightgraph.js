@@ -1,5 +1,3 @@
-import { select, selectAll, mouse } from 'd3-selection'
-import 'd3-selection-multi'
 import {HeightGraph} from "./heightgraph";
 (function (factory, window) {
 
@@ -45,9 +43,6 @@ import {HeightGraph} from "./heightgraph";
             graphStyle: undefined
         },
         initialize(_options) {
-            this._expand = this.options.expand;
-            this._expandControls = this.options.expandControls;
-            this._expandCallback = this.options.expandCallback;
             this._highlightStyle = this.options.highlightStyle || { color: 'red' }
         },
         onAdd(map) {
@@ -61,23 +56,12 @@ import {HeightGraph} from "./heightgraph";
                 _markSegmentsOnMap: self._markSegmentsOnMap.bind(this)
             }
             this._heightgraph = new HeightGraph(this._container, this.options, callbacks);
-            if (this._expandControls) {
-                this._button = L.DomUtil.create('div', "heightgraph-toggle", this._container);
-                L.DomUtil.create("a", "heightgraph-toggle-icon", this._button)
-                this._closeButton = L.DomUtil.create("a", "heightgraph-close-icon", this._container)
-                // todonow
-                this._heightgraph._closeButton = this._closeButton;
-            }
-            this._showState = false;
-            this._initToggle();
-            if (this._expand) this._expandContainer();
             return this._container;
         },
         onRemove(map) {
             this._removeMarkedSegmentsOnMap();
             this._heightgraph = null;
             this._container = null;
-            this._svg = undefined;
         },
         /**
          * add Data from geoJson and call all functions
@@ -90,51 +74,9 @@ import {HeightGraph} from "./heightgraph";
         resize(size) {
             this._heightgraph.resize(size);
         },
-        _initToggle() {
-            if (!L.Browser.touch) {
-                L.DomEvent.disableClickPropagation(this._container);
-            } else {
-                L.DomEvent.on(this._container, 'click', L.DomEvent.stopPropagation);
-            }
-            if (this._expandControls) {
-                L.DomEvent.on(this._button, 'click', this._expandContainer, this);
-                L.DomEvent.on(this._closeButton, 'click', this._expandContainer, this);
-            }
-        },
         _fitMapBounds(bounds) {
             this._map.fitBounds(bounds);
         },
-        /**
-         * Expand container when button clicked and shrink when close-Button clicked
-         */
-        _expandContainer() {
-            if (this._expandControls !== true) {
-                // always expand, never collapse
-                this._showState = false;
-            }
-            if (!this._showState) {
-                select(this._button)
-                    .style("display", "none");
-                select(this._container)
-                    .selectAll('svg')
-                    .style("display", "block");
-                select(this._closeButton)
-                    .style("display", "block");
-            } else {
-                select(this._button)
-                    .style("display", "block");
-                select(this._container)
-                    .selectAll('svg')
-                    .style("display", "none");
-                select(this._closeButton)
-                    .style("display", "none");
-            }
-            this._showState = !this._showState;
-            if (typeof this._expandCallback === "function") {
-                this._expandCallback(this._showState);
-            }
-        },
-
         /**
          * Creates a marker on the map while hovering
          * @param {Object} ll: actual coordinates of the route
@@ -143,56 +85,8 @@ import {HeightGraph} from "./heightgraph";
          */
         _showMapMarker(ll, height, type) {
             const layerPoint = this._map.latLngToLayerPoint(ll)
-            const normalizedY = layerPoint.y - 75
-            if (!this._mouseHeightFocus) {
-                const heightG = select(".leaflet-overlay-pane svg").append("g")
-                this._mouseHeightFocus = heightG.append('svg:line')
-                    .attr('class', 'height-focus line')
-                    .attr('x2', '0')
-                    .attr('y2', '0')
-                    .attr('x1', '0')
-                    .attr('y1', '0');
-                this._mouseHeightFocusLabel = heightG.append("g")
-                    .attr('class', 'height-focus label');
-                this._mouseHeightFocusLabelRect = this._mouseHeightFocusLabel.append("rect")
-                    .attr('class', 'bBox');
-                this._mouseHeightFocusLabelTextElev = this._mouseHeightFocusLabel.append("text")
-                    .attr('class', 'tspan');
-                this._mouseHeightFocusLabelTextType = this._mouseHeightFocusLabel.append("text")
-                    .attr('class', 'tspan');
-                const pointG = this._pointG = heightG.append("g").attr("class", "height-focus circle")
-                pointG.append("svg:circle")
-                    .attr("r", 5)
-                    .attr("cx", 0)
-                    .attr("cy", 0)
-                    .attr("class", "height-focus circle-lower");
-            }
-            this._mouseHeightFocusLabel.style("display", "block");
-            this._mouseHeightFocus.attr("x1", layerPoint.x)
-                .attr("x2", layerPoint.x)
-                .attr("y1", layerPoint.y)
-                .attr("y2", normalizedY)
-                .style("display", "block");
-            this._pointG.attr("transform", "translate(" + layerPoint.x + "," + layerPoint.y + ")")
-                .style("display", "block");
-            this._mouseHeightFocusLabelRect.attr("x", layerPoint.x + 3)
-                .attr("y", normalizedY)
-                .attr("class", 'bBox');
-            this._mouseHeightFocusLabelTextElev.attr("x", layerPoint.x + 5)
-                .attr("y", normalizedY + 12)
-                .text(height + " m")
-                .attr("class", "tspan mouse-height-box-text");
-            this._mouseHeightFocusLabelTextType.attr("x", layerPoint.x + 5)
-                .attr("y", normalizedY + 24)
-                .text(type)
-                .attr("class", "tspan mouse-height-box-text");
-            // todonow
-            const maxWidth = this._heightgraph._dynamicBoxSize("text.tspan")[1]
-            // box size should change for profile none (no type)
-            const maxHeight = (type === "") ? 12 + 6 : 2 * 12 + 6
-            selectAll('.bBox')
-                .attr("width", maxWidth + 10)
-                .attr("height", maxHeight);
+            const svg = document.querySelector(".leaflet-overlay-pane svg");
+            this._heightgraph._drawRouteMarker(svg, layerPoint, height, type);
         },
         /**
          * Highlights segments on the map above given elevation value

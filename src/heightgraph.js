@@ -29,6 +29,9 @@ export class HeightGraph {
         this._translation = options.translation;
         this._currentSelection = options.selectedAttributeIdx;
         this._chooseSelectionCallback = options.chooseSelectionCallback;
+        this._expand = options.expand;
+        this._expandControls = options.expandControls;
+        this._expandCallback = options.expandCallback;
         // todonow
         this._showMapMarker = callbacks._showMapMarker;
         this._fitMapBounds = callbacks._fitMapBounds;
@@ -37,12 +40,23 @@ export class HeightGraph {
 
         this._svgWidth = this._width - this._margin.left - this._margin.right;
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
+        if (this._expandControls) {
+            this._button = L.DomUtil.create('div', "heightgraph-toggle", this._container);
+            L.DomUtil.create("a", "heightgraph-toggle-icon", this._button)
+            L.DomEvent.on(this._button, 'click', this._expandContainer, this);
+
+            this._closeButton = L.DomUtil.create("a", "heightgraph-close-icon", this._container)
+            L.DomEvent.on(this._closeButton, 'click', this._expandContainer, this);
+        }
+        this._showState = false;
+        this._stopPropagation();
 
         // Note: this._svg really contains the <g> inside the <svg>
         this._svg = select(this._container).append("svg").attr("class", "heightgraph-container")
             .attr("width", this._width)
             .attr("height", this._height).append("g")
             .attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")")
+        if (this._expand) this._expandContainer();
     }
 
     _defaultTranslation = {
@@ -92,6 +106,15 @@ export class HeightGraph {
             this._createChart(this._currentSelection);
         }
         this._createSelectionBox();
+    }
+
+    _stopPropagation = () => {
+        // todonow: should we leave this here?
+        if (!L.Browser.touch) {
+            L.DomEvent.disableClickPropagation(this._container);
+        } else {
+            L.DomEvent.on(this._container, 'click', L.DomEvent.stopPropagation);
+        }
     }
 
     _dragHandler = () => {
@@ -202,6 +225,37 @@ export class HeightGraph {
             ext = [this._areasFlattended[start].latlng, this._areasFlattended[end].latlng];
         }
         if (ext) this._fitMapBounds(ext);
+    }
+
+    /**
+     * Expand container when button clicked and shrink when close-Button clicked
+     */
+    _expandContainer = () => {
+        if (this._expandControls !== true) {
+            // always expand, never collapse
+            this._showState = false;
+        }
+        if (!this._showState) {
+            select(this._button)
+                .style("display", "none");
+            select(this._container)
+                .selectAll('svg')
+                .style("display", "block");
+            select(this._closeButton)
+                .style("display", "block");
+        } else {
+            select(this._button)
+                .style("display", "block");
+            select(this._container)
+                .selectAll('svg')
+                .style("display", "none");
+            select(this._closeButton)
+                .style("display", "none");
+        }
+        this._showState = !this._showState;
+        if (typeof this._expandCallback === "function") {
+            this._expandCallback(this._showState);
+        }
     }
 
     /**
@@ -368,6 +422,59 @@ export class HeightGraph {
             min: range < 10 ? min - 10 : min - 0.1 * range,
             max: range < 10 ? max + 10 : max + 0.1 * range
         }
+    }
+
+    // todonow: make 'static'?
+    _drawRouteMarker = (svg, layerPoint, height, type) => {
+        if (!this._mouseHeightFocus) {
+            const heightG = select(svg).append("g")
+            this._mouseHeightFocus = heightG.append('svg:line')
+                .attr('class', 'height-focus line')
+                .attr('x2', '0')
+                .attr('y2', '0')
+                .attr('x1', '0')
+                .attr('y1', '0');
+            this._mouseHeightFocusLabel = heightG.append("g")
+                .attr('class', 'height-focus label');
+            this._mouseHeightFocusLabelRect = this._mouseHeightFocusLabel.append("rect")
+                .attr('class', 'bBox');
+            this._mouseHeightFocusLabelTextElev = this._mouseHeightFocusLabel.append("text")
+                .attr('class', 'tspan');
+            this._mouseHeightFocusLabelTextType = this._mouseHeightFocusLabel.append("text")
+                .attr('class', 'tspan');
+            const pointG = this._pointG = heightG.append("g").attr("class", "height-focus circle")
+            pointG.append("svg:circle")
+                .attr("r", 5)
+                .attr("cx", 0)
+                .attr("cy", 0)
+                .attr("class", "height-focus circle-lower");
+        }
+        this._mouseHeightFocusLabel.style("display", "block");
+        const normalizedY = layerPoint.y - 75
+        this._mouseHeightFocus.attr("x1", layerPoint.x)
+            .attr("x2", layerPoint.x)
+            .attr("y1", layerPoint.y)
+            .attr("y2", normalizedY)
+            .style("display", "block");
+        this._pointG.attr("transform", "translate(" + layerPoint.x + "," + layerPoint.y + ")")
+            .style("display", "block");
+        this._mouseHeightFocusLabelRect.attr("x", layerPoint.x + 3)
+            .attr("y", normalizedY)
+            .attr("class", 'bBox');
+        this._mouseHeightFocusLabelTextElev.attr("x", layerPoint.x + 5)
+            .attr("y", normalizedY + 12)
+            .text(height + " m")
+            .attr("class", "tspan mouse-height-box-text");
+        this._mouseHeightFocusLabelTextType.attr("x", layerPoint.x + 5)
+            .attr("y", normalizedY + 24)
+            .text(type)
+            .attr("class", "tspan mouse-height-box-text");
+        const maxWidth = this._dynamicBoxSize("text.tspan")[1]
+        // box size should change for profile none (no type)
+        const maxHeight = (type === "") ? 12 + 6 : 2 * 12 + 6
+        selectAll('.bBox')
+            .attr("width", maxWidth + 10)
+            .attr("height", maxHeight);
     }
 
     /**
@@ -854,6 +961,7 @@ export class HeightGraph {
      * Handles the mouseout event when the mouse leaves the background
      */
     _mouseoutHandler = () => {
+        // todonow: what does this do? does it work? are there other dynamic usages like this?
         for (let param of ['_focusLine', '_focus', '_pointG', '_mouseHeightFocus', '_mouseHeightFocusLabel'])
             if (this[param]) {
                 this[param].style('display', 'none');
