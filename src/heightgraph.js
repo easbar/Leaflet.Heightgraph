@@ -81,13 +81,13 @@ export class HeightGraph {
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
 
         // Re-add the data to redraw the chart.
-        this._addData(this._data);
+        this.addData(this._data);
     }
 
     /**
      * TODO: this should be refactored to avoid calling _addData on resize
      */
-    _addData = (data) => {
+    addData = (data) => {
         if (this._svg !== undefined) {
             this._svg.selectAll("*")
                 .remove();

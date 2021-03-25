@@ -69,7 +69,7 @@ import {HeightGraph} from "./heightgraph";
          */
         addData(data) {
             this._removeMarkedSegmentsOnMap();
-            this._heightgraph._addData(data)
+            this._heightgraph.addData(data)
         },
         resize(size) {
             this._heightgraph.resize(size);
