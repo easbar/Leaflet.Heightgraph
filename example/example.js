@@ -1,3 +1,4 @@
+// todonow: why are there extra handlers for this here?
 const onRoute = event => {
     hg.mapMousemoveHandler(event, {showMapMarker:false})
 }
@@ -64,6 +65,7 @@ L.geoJson(geojson1)
     })
     .addTo(displayGroup)
 
+// todonow: shouldn't this be part of heightgraph (emit fitMapBounds callback when data is set/added)
 map.addLayer(openstreetmap).fitBounds(bounds)
 
 hg.resize({width:1000,height:300})
