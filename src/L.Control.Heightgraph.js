@@ -113,60 +113,6 @@ import {HeightGraph} from "./heightgraph";
                     .bringToFront()
             }
         },
-
-        /*
-         * Handles the mouseout event and clears the current point info.
-         * @param {int} delay - time before markers are removed in milliseconds
-         */
-        // todonow: what is this?
-        mapMouseoutHandler(delay = 1000) {
-            if (this.mouseoutDelay) {
-                window.clearTimeout(this.mouseoutDelay)
-            }
-            this.mouseoutDelay = window.setTimeout(() => {
-                this._heightgraph._mouseoutHandler();
-            }, delay)
-        },
-        /*
-         * Handles the mouseover the map and displays distance and altitude level.
-         * Since this does a lookup of the point on the graph
-         * the closest to the given latlng on the provided event, it could be slow.
-         */
-        mapMousemoveHandler(event, { showMapMarker: showMapMarker = true } = {}) {
-            // todonow
-            if (this._heightgraph._areasFlattended === false) {
-                return;
-            }
-            // initialize the vars for the closest item calculation
-            let closestItem = null;
-            // large enough to be trumped by any point on the chart
-            let closestDistance = 2 * Math.pow(100, 2);
-            // consider a good enough match if the given point (lat and lng) is within
-            // 1.1 meters of a point on the chart (there are 111,111 meters in a degree)
-            const exactMatchRounding = 1.1 / 111111;
-            // todonow
-            for (let item of this._heightgraph._areasFlattended) {
-                let latDiff = event.latlng.lat - item.latlng.lat;
-                let lngDiff = event.latlng.lng - item.latlng.lng;
-                // first check for an almost exact match; it's simple and avoid further calculations
-                if (Math.abs(latDiff) < exactMatchRounding && Math.abs(lngDiff) < exactMatchRounding) {
-                    // todonow
-                    this._heightgraph._internalMousemoveHandler(item, showMapMarker);
-                    break;
-                }
-                // calculate the squared distance from the current to the given;
-                // it's the squared distance, to avoid the expensive square root
-                const distance = Math.pow(latDiff, 2) + Math.pow(lngDiff, 2);
-                if (distance < closestDistance) {
-                    closestItem = item;
-                    closestDistance = distance;
-                }
-            }
-
-            // todonow
-            if (closestItem) this._heightgraph._internalMousemoveHandler(closestItem, showMapMarker);
-        },
-
     });
     L.control.heightgraph = function (options) {
         return new L.Control.Heightgraph(options)

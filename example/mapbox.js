@@ -5,7 +5,6 @@ document.querySelector('#data2').addEventListener('click', e => changeData(2));
 document.querySelector('#data3').addEventListener('click', e => changeData(3))
 document.querySelector('#data4').addEventListener('click', e => changeData(4));
 
-// todonow: mapMousemoveHandler & mapMouseoutHandler ?!
 export const changeData = setNumber => {
     const dataSet = [geojson1, geojson2, geojson3, []][setNumber-1];
     drawGeoJson(dataSet);
