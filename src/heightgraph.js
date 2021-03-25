@@ -15,6 +15,7 @@ import {
     schemePaired
 } from 'd3-scale-chromatic'
 
+// todonow: remove everything leaflet
 export class HeightGraph {
     constructor(container, options, callbacks) {
         this._container = container;
@@ -35,7 +36,6 @@ export class HeightGraph {
         // todonow
         this._showMapMarker = callbacks._showMapMarker;
         this._fitMapBounds = callbacks._fitMapBounds;
-        this._removeMarkedSegmentsOnMap = callbacks._removeMarkedSegmentsOnMap;
         this._markSegmentsOnMap = callbacks._markSegmentsOnMap;
 
         this._svgWidth = this._width - this._margin.left - this._margin.right;
@@ -88,6 +88,7 @@ export class HeightGraph {
      * TODO: this should be refactored to avoid calling _addData on resize
      */
     addData = (data) => {
+        this._markSegmentsOnMap([]);
         if (this._svg !== undefined) {
             this._svg.selectAll("*")
                 .remove();
@@ -426,46 +427,38 @@ export class HeightGraph {
 
     // todonow: make 'static'?
     _drawRouteMarker = (svg, layerPoint, height, type) => {
-        if (!this._mouseHeightFocus) {
-            const heightG = select(svg).append("g")
-            this._mouseHeightFocus = heightG.append('svg:line')
-                .attr('class', 'height-focus line')
-                .attr('x2', '0')
-                .attr('y2', '0')
-                .attr('x1', '0')
-                .attr('y1', '0');
-            this._mouseHeightFocusLabel = heightG.append("g")
-                .attr('class', 'height-focus label');
-            this._mouseHeightFocusLabelRect = this._mouseHeightFocusLabel.append("rect")
-                .attr('class', 'bBox');
-            this._mouseHeightFocusLabelTextElev = this._mouseHeightFocusLabel.append("text")
-                .attr('class', 'tspan');
-            this._mouseHeightFocusLabelTextType = this._mouseHeightFocusLabel.append("text")
-                .attr('class', 'tspan');
-            const pointG = this._pointG = heightG.append("g").attr("class", "height-focus circle")
-            pointG.append("svg:circle")
-                .attr("r", 5)
-                .attr("cx", 0)
-                .attr("cy", 0)
-                .attr("class", "height-focus circle-lower");
-        }
-        this._mouseHeightFocusLabel.style("display", "block");
+        this._routeMarker = select(svg).append("g").attr('id', 'route-marker')
+        const labelBox = this._routeMarker.append("g")
+            .attr('class', 'height-focus label')
+            .style("display", "block");
         const normalizedY = layerPoint.y - 75
-        this._mouseHeightFocus.attr("x1", layerPoint.x)
+        this._routeMarker.append('svg:line')
+            .attr('class', 'height-focus line')
+            .attr("x1", layerPoint.x)
             .attr("x2", layerPoint.x)
             .attr("y1", layerPoint.y)
             .attr("y2", normalizedY)
             .style("display", "block");
-        this._pointG.attr("transform", "translate(" + layerPoint.x + "," + layerPoint.y + ")")
+        const pointG = this._routeMarker.append("g")
+            .attr("class", "height-focus circle")
+            .attr("transform", "translate(" + layerPoint.x + "," + layerPoint.y + ")")
             .style("display", "block");
-        this._mouseHeightFocusLabelRect.attr("x", layerPoint.x + 3)
+        pointG.append("svg:circle")
+            .attr("r", 5)
+            .attr("cx", 0)
+            .attr("cy", 0)
+            .attr("class", "height-focus circle-lower");
+        labelBox.append("rect")
+            .attr("x", layerPoint.x + 3)
             .attr("y", normalizedY)
             .attr("class", 'bBox');
-        this._mouseHeightFocusLabelTextElev.attr("x", layerPoint.x + 5)
+        labelBox.append("text")
+            .attr("x", layerPoint.x + 5)
             .attr("y", normalizedY + 12)
             .text(height + " m")
             .attr("class", "tspan mouse-height-box-text");
-        this._mouseHeightFocusLabelTextType.attr("x", layerPoint.x + 5)
+        labelBox.append("text")
+            .attr("x", layerPoint.x + 5)
             .attr("y", normalizedY + 24)
             .text(type)
             .attr("class", "tspan mouse-height-box-text");
@@ -475,6 +468,11 @@ export class HeightGraph {
         selectAll('.bBox')
             .attr("width", maxWidth + 10)
             .attr("height", maxHeight);
+    }
+
+    _removeRouteMarker() {
+        if (this._routeMarker)
+            this._routeMarker.remove();
     }
 
     /**
@@ -605,7 +603,6 @@ export class HeightGraph {
             select(".horizontalLineText")
                 .attr("y", (eventY <= 10 ? 0 : (eventY > maxY ? maxY - 10 : eventY - 10)))
                 .text(format(".0f")(this._y.invert((eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)))) + " m");
-            this._removeMarkedSegmentsOnMap();
             this._markSegmentsOnMap(this._highlightedCoords);
         }
 
@@ -614,7 +611,6 @@ export class HeightGraph {
                 .classed("active", false);
             select(".horizontalLine")
                 .classed("active", false);
-            this._removeMarkedSegmentsOnMap();
             this._markSegmentsOnMap(this._highlightedCoords);
         }
 
@@ -826,8 +822,8 @@ export class HeightGraph {
                 this._currentSelection = idx = 0
             }
             chooseSelection(idx)
+            this._markSegmentsOnMap([])
             this._removeChart()
-            this._removeMarkedSegmentsOnMap()
             this._createChart(idx)
         }
 
@@ -837,8 +833,8 @@ export class HeightGraph {
                 this._currentSelection = idx = this._categories.length - 1
             }
             chooseSelection(idx)
+            this._markSegmentsOnMap([])
             this._removeChart()
-            this._removeMarkedSegmentsOnMap()
             this._createChart(idx)
         }
     }
@@ -961,11 +957,7 @@ export class HeightGraph {
      * Handles the mouseout event when the mouse leaves the background
      */
     _mouseoutHandler = () => {
-        // todonow: what does this do? does it work? are there other dynamic usages like this?
-        for (let param of ['_focusLine', '_focus', '_pointG', '_mouseHeightFocus', '_mouseHeightFocusLabel'])
-            if (this[param]) {
-                this[param].style('display', 'none');
-            }
+        this._showMapMarker(null);
     }
 
     /**

@@ -20,6 +20,7 @@ import {HeightGraph} from "./heightgraph";
     }
 }(function (L) {
     L.Control.Heightgraph = L.Control.extend({
+        // todonow: move defaults into heightgraph
         options: {
             position: "bottomright",
             width: 800,
@@ -52,14 +53,13 @@ import {HeightGraph} from "./heightgraph";
             const callbacks = {
                 _showMapMarker: self._showMapMarker.bind(this),
                 _fitMapBounds: self._fitMapBounds.bind(this),
-                _removeMarkedSegmentsOnMap: self._removeMarkedSegmentsOnMap.bind(this),
                 _markSegmentsOnMap: self._markSegmentsOnMap.bind(this)
             }
             this._heightgraph = new HeightGraph(this._container, this.options, callbacks);
             return this._container;
         },
         onRemove(map) {
-            this._removeMarkedSegmentsOnMap();
+            this._markSegmentsOnMap([]);
             this._heightgraph = null;
             this._container = null;
         },
@@ -68,7 +68,6 @@ import {HeightGraph} from "./heightgraph";
          * @param {Object} data
          */
         addData(data) {
-            this._removeMarkedSegmentsOnMap();
             this._heightgraph.addData(data)
         },
         resize(size) {
@@ -84,38 +83,34 @@ import {HeightGraph} from "./heightgraph";
          * @param {string} type: type of element
          */
         _showMapMarker(ll, height, type) {
-            const layerPoint = this._map.latLngToLayerPoint(ll)
-            const svg = document.querySelector(".leaflet-overlay-pane svg");
-            this._heightgraph._drawRouteMarker(svg, layerPoint, height, type);
+            this._heightgraph._removeRouteMarker();
+            if (ll) {
+                const layerPoint = this._map.latLngToLayerPoint(ll)
+                const svg = document.querySelector(".leaflet-overlay-pane svg");
+                this._heightgraph._drawRouteMarker(svg, layerPoint, height, type);
+            }
         },
         /**
          * Highlights segments on the map above given elevation value
          */
         _markSegmentsOnMap(coords) {
-            if (coords) {
-                if (coords.length > 1) {
-                    // some other leaflet plugins can't deal with multi-Polylines very well
-                    // therefore multiple single polylines are used here
-                    this._markedSegments = L.featureGroup()
-                    for (let linePart of coords) {
-                        L.polyline(
-                            linePart,
-                            { ...this._highlightStyle, ...{ interactive: false } }
-                        ).addTo(this._markedSegments)
-                    }
-                    this._markedSegments.addTo(this._map)
-                        .bringToFront()
-                } else {
-                    this._markedSegments = L.polyline(coords, this._highlightStyle).addTo(this._map);
-                }
-            }
-        },
-        /**
-         * Remove the highlighted segments from the map
-         */
-        _removeMarkedSegmentsOnMap() {
             if (this._markedSegments !== undefined) {
                 this._map.removeLayer(this._markedSegments);
+            }
+            if (coords.length === 1) {
+                this._markedSegments = L.polyline(coords, this._highlightStyle).addTo(this._map);
+            } else {
+                // some other leaflet plugins can't deal with multi-Polylines very well
+                // therefore multiple single polylines are used here
+                this._markedSegments = L.featureGroup()
+                for (let linePart of coords) {
+                    L.polyline(
+                        linePart,
+                        {...this._highlightStyle, ...{interactive: false}}
+                    ).addTo(this._markedSegments)
+                }
+                this._markedSegments.addTo(this._map)
+                    .bringToFront()
             }
         },
 
@@ -123,6 +118,7 @@ import {HeightGraph} from "./heightgraph";
          * Handles the mouseout event and clears the current point info.
          * @param {int} delay - time before markers are removed in milliseconds
          */
+        // todonow: what is this?
         mapMouseoutHandler(delay = 1000) {
             if (this.mouseoutDelay) {
                 window.clearTimeout(this.mouseoutDelay)
