@@ -110,12 +110,15 @@ export class HeightGraph {
     }
 
     _stopPropagation = () => {
-        // todonow: should we leave this here?
-        if (!L.Browser.touch) {
-            L.DomEvent.disableClickPropagation(this._container);
-        } else {
-            L.DomEvent.on(this._container, 'click', L.DomEvent.stopPropagation);
-        }
+        this._container.addEventListener('click mousedown touchstart dblclick', e => {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            } else if (e.originalEvent) {
+                e.originalEvent._stopped = true;
+            } else {
+                e.cancelBubble = true;
+            }
+        });
     }
 
     _dragHandler = () => {
