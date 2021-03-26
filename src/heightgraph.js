@@ -15,10 +15,25 @@ import {
     schemePaired
 } from 'd3-scale-chromatic'
 
-// todonow: remove everything leaflet
+const defaultOptions = {
+    width: 800,
+    height: 280,
+    margins: {
+        top: 10,
+        right: 30,
+        bottom: 55,
+        left: 50
+    },
+    expand: true,
+    expandControls: true,
+    translation: {},
+    selectedAttributeIdx: 0,
+}
+
 export class HeightGraph {
     constructor(container, options, callbacks) {
         this._container = container;
+        options = Object.assign(defaultOptions, options);
         this._margin = options.margins;
         this._width = options.width;
         this._height = options.height;

@@ -40,7 +40,9 @@ const map = new mapboxgl.Map({
     zoom: 15
 });
 
-const hg = new MapboxHeightGraph();
+const hg = new MapboxHeightGraph({
+   expand: true
+});
 map.addControl(hg, 'bottom-right');
 hg.addData(geojson1)
 

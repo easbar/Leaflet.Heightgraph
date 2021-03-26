@@ -20,30 +20,11 @@ import {HeightGraph} from "./heightgraph";
     }
 }(function (L) {
     L.Control.Heightgraph = L.Control.extend({
-        // todonow: move defaults into heightgraph
         options: {
-            position: "bottomright",
-            width: 800,
-            height: 280,
-            margins: {
-                top: 10,
-                right: 30,
-                bottom: 55,
-                left: 50
-            },
-            mappings: undefined,
-            expand: true,
-            expandControls: true,
-            translation: {},
-            expandCallback: undefined,
-            chooseSelectionCallback: undefined,
-            selectedAttributeIdx: 0,
-            xTicks: undefined,
-            yTicks: undefined,
-            highlightStyle: undefined,
-            graphStyle: undefined
+            position: 'bottomright'
         },
         initialize(_options) {
+            L.Util.setOptions(this, _options);
             this._highlightStyle = this.options.highlightStyle || { color: 'red' }
         },
         onAdd(map) {

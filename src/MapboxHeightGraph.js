@@ -1,31 +1,11 @@
-import "mapbox-gl"
 import {HeightGraph} from "./heightgraph";
 
-// todonow: accept options
-const options = {
-    position: "bottomright",
-    width: 800,
-    height: 280,
-    margins: {
-        top: 10,
-        right: 30,
-        bottom: 55,
-        left: 50
-    },
-    mappings: undefined,
-    expand: true,
-    expandControls: true,
-    translation: {},
-    expandCallback: undefined,
-    chooseSelectionCallback: undefined,
-    selectedAttributeIdx: 0,
-    xTicks: undefined,
-    yTicks: undefined,
-    highlightStyle: undefined,
-    graphStyle: undefined,
-}
-
 export class MapboxHeightGraph {
+
+    constructor(options) {
+        this._options = options;
+    }
+
     onAdd(map) {
         this._map = map;
         this._container = document.createElement('div');
@@ -37,7 +17,7 @@ export class MapboxHeightGraph {
             _fitMapBounds: self._fitMapBounds.bind(this),
             _markSegmentsOnMap: self._markSegmentsOnMap.bind(this)
         }
-        this._heightgraph = new HeightGraph(this._container, options, callbacks);
+        this._heightgraph = new HeightGraph(this._container, this._options, callbacks);
         return this._container;
     }
 
