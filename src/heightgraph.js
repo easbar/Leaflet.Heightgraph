@@ -41,12 +41,12 @@ export class HeightGraph {
         this._svgWidth = this._width - this._margin.left - this._margin.right;
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
         if (this._expandControls) {
-            this._button = L.DomUtil.create('div', "heightgraph-toggle", this._container);
-            L.DomUtil.create("a", "heightgraph-toggle-icon", this._button)
-            L.DomEvent.on(this._button, 'click', this._expandContainer, this);
+            this._button = this._createDOMElement('div', "heightgraph-toggle", this._container);
+            this._createDOMElement("a", "heightgraph-toggle-icon", this._button);
+            this._button.addEventListener('click', this._expandContainer);
 
-            this._closeButton = L.DomUtil.create("a", "heightgraph-close-icon", this._container)
-            L.DomEvent.on(this._closeButton, 'click', this._expandContainer, this);
+            this._closeButton = this._createDOMElement("a", "heightgraph-close-icon", this._container)
+            this._closeButton.addEventListener('click', this._expandContainer);
         }
         this._showState = false;
         this._stopPropagation();
@@ -132,6 +132,7 @@ export class HeightGraph {
      * Draws the currently dragged rectangle over the chart.
      */
     _drawDragRectangle = () => {
+        // todonow: sometimes (depending on which path detail we select) the rectangle is shown *behind* the graph?!
         if (!this._dragStartCoords) {
             return;
         }
@@ -209,13 +210,20 @@ export class HeightGraph {
         if (!data || data.length < 1) {
             return null;
         }
-        let full_extent = new L.latLngBounds(data[0].latlng, data[0].latlng);
-        data.forEach((item) => {
-            if (!full_extent.contains(item.latlng)) {
-                full_extent.extend(item.latlng);
-            }
+        let minLat = data[0].latlng.lat;
+        let minLng = data[0].latlng.lng;
+        let maxLat = data[0].latlng.lat;
+        let maxLng = data[0].latlng.lng;
+        data.forEach(c => {
+            minLng = Math.min(minLng, c.latlng.lng);
+            minLat = Math.min(minLat, c.latlng.lat);
+            maxLng = Math.max(maxLng, c.latlng.lng);
+            maxLat = Math.max(maxLat, c.latlng.lat);
         });
-        return full_extent;
+        return {
+            sw: this._createCoordinate(minLng, minLat),
+            ne: this._createCoordinate(maxLng, maxLat)
+        };
     }
 
     /**
@@ -368,13 +376,13 @@ export class HeightGraph {
                     this._categories[y].legend[attributeType] = attribute;
                 }
                 for (let j = 0; j < coordsLength; j++) {
-                    ptA = new L.LatLng(data[y].features[i].geometry.coordinates[j][1], data[y].features[i].geometry.coordinates[j][0]);
+                    ptA = this._createCoordinate(data[y].features[i].geometry.coordinates[j][0], data[y].features[i].geometry.coordinates[j][1]);
                     altitude = data[y].features[i].geometry.coordinates[j][2];
                     // add elevations, coordinates and point distances only once
                     // last point in feature is first of next which is why we have to juggle with indices
                     if (j < coordsLength - 1) {
-                        ptB = new L.LatLng(data[y].features[i].geometry.coordinates[j + 1][1], data[y].features[i].geometry.coordinates[j + 1][0]);
-                        ptDistance = ptA.distanceTo(ptB) / 1000;
+                        ptB = this._createCoordinate(data[y].features[i].geometry.coordinates[j + 1][0], data[y].features[i].geometry.coordinates[j + 1][1]);
+                        ptDistance = this._calcDistance(ptA, ptB) / 1000;
                         // calculate distances of specific block
                         cumDistance += ptDistance;
                         if (y === 0) {
@@ -429,7 +437,7 @@ export class HeightGraph {
         }
     }
 
-    // todonow: make 'static'?
+    // todonow: make 'static'? or actually move this into leaflet?
     _drawRouteMarker = (svg, layerPoint, elevation, type) => {
         this._routeMarker = select(svg).append("g").attr('id', 'route-marker')
         const labelBox = this._routeMarker.append("g")
@@ -675,13 +683,14 @@ export class HeightGraph {
             background.on("touchstart.drag", this._dragHandler.bind(this))
                 .on("touchstart.drag", this._dragStartHandler.bind(this))
                 .on("touchstart.focusbox", this._mousemoveHandler.bind(this));
-            L.DomEvent.on(this._container, 'touchend', this._dragEndHandler, this);
+            // todonow: not working on mobile??
+            this._container.addEventListener('touchend', this._dragEndHandler);
         } else {
             background.on("mousemove.focusbox", this._mousemoveHandler.bind(this))
                 .on("mouseout.focusbox", this._mouseoutHandler.bind(this))
                 .on("mousedown.drag", this._dragStartHandler.bind(this))
                 .on("mousemove.drag", this._dragHandler.bind(this));
-            L.DomEvent.on(this._container, 'mouseup', this._dragEndHandler, this);
+            this._container.addEventListener('mouseup', this._dragEndHandler);
         }
     }
 
@@ -827,6 +836,7 @@ export class HeightGraph {
             }
             chooseSelection(idx)
             this._markSegmentsOnMap([])
+            // todonow: should we keep or dismiss the rectangle selection?
             this._removeChart()
             this._createChart(idx)
         }
@@ -838,6 +848,7 @@ export class HeightGraph {
             }
             chooseSelection(idx)
             this._markSegmentsOnMap([])
+            // todonow: should we keep or dismiss the rectangle selection?
             this._removeChart()
             this._createChart(idx)
         }
@@ -1065,4 +1076,25 @@ export class HeightGraph {
         return 'No translation found';
     }
 
+    _createCoordinate = (lng, lat) => {
+        return {lat: lat, lng: lng};
+    }
+    /**
+     * calculates the distance between two (lat,lng) coordinates in meters
+     */
+    _calcDistance = (a, b) => {
+        const deg2rad = Math.PI / 180;
+        const sinDLat = Math.sin((b.lat - a.lat) * deg2rad / 2);
+        const sinDLon = Math.sin((b.lng - a.lng) * deg2rad / 2);
+        const f = sinDLat * sinDLat + Math.cos(a.lat * deg2rad) * Math.cos(b.lat * deg2rad) * sinDLon * sinDLon;
+        return 6371000 * 2 * Math.atan2(Math.sqrt(f), Math.sqrt(1 - f));
+    }
+
+    _createDOMElement(tagName, className, container) {
+        const el = document.createElement(tagName);
+        el.className = className || '';
+        if (container)
+            container.appendChild(el);
+        return el;
+    }
 }

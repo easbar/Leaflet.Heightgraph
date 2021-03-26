@@ -74,6 +74,7 @@ import {HeightGraph} from "./heightgraph";
             this._heightgraph.resize(size);
         },
         _fitMapBounds(bounds) {
+            bounds = L.latLngBounds(bounds.sw, bounds.ne);
             this._map.fitBounds(bounds);
         },
         /**

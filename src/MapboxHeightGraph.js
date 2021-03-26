@@ -57,8 +57,7 @@ export class MapboxHeightGraph {
     }
 
     _fitMapBounds(bounds) {
-        // todonow: incoming bounds should not be leaflet-specific
-        bounds = new mapboxgl.LngLatBounds(bounds._southWest, bounds._northEast);
+        bounds = new mapboxgl.LngLatBounds(bounds.sw, bounds.ne);
         this._map.fitBounds(bounds, {
             animate: false
         });
