@@ -679,7 +679,7 @@ export class HeightGraph {
             .style("pointer-events", "all")
             .on("mousemove.focusbox", this._mousemoveHandler.bind(this))
             .on("mouseout.focusbox", this._mouseoutHandler.bind(this))
-        if (L.Browser.android) {
+        if (this._isMobile()) {
             background.on("touchstart.drag", this._dragHandler.bind(this))
                 .on("touchstart.drag", this._dragStartHandler.bind(this))
                 .on("touchstart.focusbox", this._mousemoveHandler.bind(this));
@@ -1096,5 +1096,9 @@ export class HeightGraph {
         if (container)
             container.appendChild(el);
         return el;
+    }
+
+    _isMobile() {
+        return /Android|webOS|iPhone|iPad|Mac|Macintosh|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 }
