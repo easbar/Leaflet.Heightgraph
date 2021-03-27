@@ -29,7 +29,7 @@ You can import the required libraries in the head of your index.html file
 ```html
  <link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css" />
  <script src="node_modules/leaflet/dist/leaflet.js"></script>
- <link rel="stylesheet" href="src/L.Control.Heightgraph.css"/>
+ <link rel="stylesheet" href="src/heightgraph.css"/>
  <script type="text/javascript" src="src/L.Control.Heightgraph.js"></script>
 ```
 
