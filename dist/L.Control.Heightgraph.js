@@ -16,6 +16,28 @@ function _typeof(obj) {
   return _typeof(obj);
 }
 
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
 function _defineProperty(obj, key, value) {
   if (key in obj) {
     Object.defineProperty(obj, key, {
@@ -4604,126 +4626,119 @@ var schemeSet2 = colors("66c2a5fc8d628da0cbe78ac3a6d854ffd92fe5c494b3b3b3");
 
 var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9bc80bdccebc5ffed6f");
 
-(function (factory, window) {
-  // define an AMD module that relies on 'leaflet'
-  if (typeof define === 'function' && define.amd) {
-    define(['leaflet'], factory); // define a Common JS module that relies on 'leaflet'
-  } else if ((typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object') {
-    if (typeof window !== 'undefined' && window.L) {
-      module.exports = factory(L);
-    } else {
-      module.exports = factory(require('leaflet'));
-    }
-  } // attach your plugin to the global 'L' variable
+var defaultOptions = {
+  width: 800,
+  height: 280,
+  margins: {
+    top: 10,
+    right: 30,
+    bottom: 55,
+    left: 50
+  },
+  expand: true,
+  expandControls: true,
+  translation: {},
+  selectedAttributeIdx: 0
+};
+var HeightGraph = /*#__PURE__*/function () {
+  function HeightGraph(container, options, callbacks) {
+    var _this = this;
 
+    _classCallCheck(this, HeightGraph);
 
-  if (typeof window !== 'undefined' && window.L) {
-    window.L.Control.Heightgraph = factory(L);
-  }
-})(function (L) {
-  L.Control.Heightgraph = L.Control.extend({
-    options: {
-      position: "bottomright",
-      width: 800,
-      height: 280,
-      margins: {
-        top: 10,
-        right: 30,
-        bottom: 55,
-        left: 50
-      },
-      mappings: undefined,
-      expand: true,
-      expandControls: true,
-      translation: {},
-      expandCallback: undefined,
-      chooseSelectionCallback: undefined,
-      selectedAttributeIdx: 0,
-      xTicks: undefined,
-      yTicks: undefined,
-      highlightStyle: undefined,
-      graphStyle: undefined
-    },
-    _defaultTranslation: {
+    this._container = container;
+    options = Object.assign(defaultOptions, options);
+    this._margin = options.margins;
+    this._width = options.width;
+    this._height = options.height;
+    this._mappings = options.mappings;
+    this._graphStyle = options.graphStyle || {};
+    this._dragCache = {};
+    this._xTicks = options.xTicks;
+    this._yTicks = options.yTicks;
+    this._translation = options.translation;
+    this._currentSelection = options.selectedAttributeIdx;
+    this._chooseSelectionCallback = options.chooseSelectionCallback;
+    this._expand = options.expand;
+    this._expandControls = options.expandControls;
+    this._expandCallback = options.expandCallback; // todonow
+
+    this._showMapMarker = callbacks._showMapMarker;
+    this._fitMapBounds = callbacks._fitMapBounds;
+    this._markSegmentsOnMap = callbacks._markSegmentsOnMap;
+    this._defaultTranslation = {
       distance: "Distance",
       elevation: "Elevation",
       segment_length: "Segment length",
       type: "Type",
       legend: "Legend"
-    },
-    _init_options: function _init_options() {
-      this._margin = this.options.margins;
-      this._width = this.options.width;
-      this._height = this.options.height;
-      this._mappings = this.options.mappings;
+    };
+    this._d3ColorCategorical = [schemeAccent, schemeDark2, schemeSet2, schemeCategory10, schemeSet3, schemePaired];
+
+    this._containerDragEndListener = function () {
+      return _this._dragEndHandler();
+    };
+
+    this._svgWidth = this._width - this._margin.left - this._margin.right;
+    this._svgHeight = this._height - this._margin.top - this._margin.bottom;
+
+    if (this._expandControls) {
+      this._button = this._createDOMElement('div', "heightgraph-toggle", this._container);
+
+      this._createDOMElement("a", "heightgraph-toggle-icon", this._button);
+
+      this._button.addEventListener('click', function () {
+        return _this._expandContainer();
+      });
+
+      this._closeButton = this._createDOMElement("a", "heightgraph-close-icon", this._container);
+
+      this._closeButton.addEventListener('click', function () {
+        return _this._expandContainer();
+      });
+    }
+
+    this._showState = false;
+
+    this._stopPropagation(); // Note: this._svg really contains the <g> inside the <svg>
+
+
+    this._svg = select(this._container).append("svg").attr("class", "heightgraph-container").attr("width", this._width).attr("height", this._height).append("g").attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")");
+    if (this._expand) this._expandContainer();
+  }
+
+  _createClass(HeightGraph, [{
+    key: "resize",
+    value: function resize(size) {
+      if (size.width) this._width = size.width;
+      if (size.height) this._height = size.height; // Resize the <svg> along with its container
+
+      select(this._container).selectAll("svg").attr("width", this._width).attr("height", this._height);
       this._svgWidth = this._width - this._margin.left - this._margin.right;
-      this._svgHeight = this._height - this._margin.top - this._margin.bottom;
-      this._highlightStyle = this.options.highlightStyle || {
-        color: 'red'
-      };
-      this._graphStyle = this.options.graphStyle || {};
-      this._dragCache = {};
-    },
-    onAdd: function onAdd(map) {
-      var container = this._container = L.DomUtil.create("div", "heightgraph");
-      L.DomEvent.disableClickPropagation(container);
+      this._svgHeight = this._height - this._margin.top - this._margin.bottom; // Re-add the data to redraw the chart.
 
-      if (this.options.expandControls) {
-        var buttonContainer = this._button = L.DomUtil.create('div', "heightgraph-toggle", container);
-        var link = L.DomUtil.create("a", "heightgraph-toggle-icon", buttonContainer);
-        var closeButton = this._closeButton = L.DomUtil.create("a", "heightgraph-close-icon", container);
-      }
-
-      this._showState = false;
-
-      this._initToggle();
-
-      this._init_options(); // Note: this._svg really contains the <g> inside the <svg>
-
-
-      this._svg = select(this._container).append("svg").attr("class", "heightgraph-container").attr("width", this._width).attr("height", this._height).append("g").attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")");
-      if (this.options.expand) this._expand();
-      return container;
-    },
-    onRemove: function onRemove(map) {
-      this._removeMarkedSegmentsOnMap();
-
-      this._container = null;
-      this._svg = undefined;
-    },
-
+      this.addData(this._data);
+    }
     /**
-     * add Data from geoJson and call all functions
-     * @param {Object} data
+     * TODO: this should be refactored to avoid calling _addData on resize
      */
-    addData: function addData(data) {
-      this._addData(data);
-    },
 
-    /**
-    * Internal function. Overloads public addData().
-    * Call with resize = true when resizing instead of actually adding data.
-    * TODO: this should be refactored to avoid calling addData on resize
-    * @param data
-    * @param resize
-    * @private
-    */
-    _addData: function _addData(data) {
+  }, {
+    key: "addData",
+    value: function addData(data) {
+      this._markSegmentsOnMap([]);
+
       if (this._svg !== undefined) {
         this._svg.selectAll("*").remove();
       }
 
-      if (!data || this.options.selectedAttributeIdx >= data.length) {
-        this.options.selectedAttributeIdx = 0;
+      if (!data || this._currentSelection >= data.length) {
+        this._currentSelection = 0;
       }
-
-      this._removeMarkedSegmentsOnMap();
 
       this._resetDrag(true);
 
       this._data = data;
-
-      this._init_options();
 
       this._prepareData();
 
@@ -4734,32 +4749,27 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       this._appendGrid();
 
       if (Object.keys(data).length !== 0) {
-        this._createChart(this.options.selectedAttributeIdx);
+        this._createChart(this._currentSelection);
       }
 
       this._createSelectionBox();
-    },
-    resize: function resize(size) {
-      if (size.width) this.options.width = size.width;
-      if (size.height) this.options.height = size.height; // Resize the <svg> along with its container
-
-      select(this._container).selectAll("svg").attr("width", this.options.width).attr("height", this.options.height); // Re-add the data to redraw the chart.
-
-      this._addData(this._data);
-    },
-    _initToggle: function _initToggle() {
-      if (!L.Browser.touch) {
-        L.DomEvent.disableClickPropagation(this._container);
-      } else {
-        L.DomEvent.on(this._container, 'click', L.DomEvent.stopPropagation);
-      }
-
-      if (this.options.expandControls) {
-        L.DomEvent.on(this._button, 'click', this._expand, this);
-        L.DomEvent.on(this._closeButton, 'click', this._expand, this);
-      }
-    },
-    _dragHandler: function _dragHandler() {
+    }
+  }, {
+    key: "_stopPropagation",
+    value: function _stopPropagation() {
+      this._container.addEventListener('click mousedown touchstart dblclick', function (e) {
+        if (e.stopPropagation) {
+          e.stopPropagation();
+        } else if (e.originalEvent) {
+          e.originalEvent._stopped = true;
+        } else {
+          e.cancelBubble = true;
+        }
+      });
+    }
+  }, {
+    key: "_dragHandler",
+    value: function _dragHandler() {
       //we don´t want map events to occur here
       if (typeof event !== 'undefined') {
         event.preventDefault();
@@ -4769,12 +4779,15 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       this._gotDragged = true;
 
       this._drawDragRectangle();
-    },
-
+    }
     /**
      * Draws the currently dragged rectangle over the chart.
      */
-    _drawDragRectangle: function _drawDragRectangle() {
+
+  }, {
+    key: "_drawDragRectangle",
+    value: function _drawDragRectangle() {
+      // todonow: sometimes (depending on which path detail we select) the rectangle is shown *behind* the graph?!
       if (!this._dragStartCoords) {
         return;
       }
@@ -4790,13 +4803,15 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       } else {
         this._dragRectangle.attr("width", x2 - x1).attr("x", x1);
       }
-    },
-
+    }
     /**
      * Removes the drag rectangle
      * @param {boolean} skipMapFitBounds - whether to zoom the map back to the total extent of the data
      */
-    _resetDrag: function _resetDrag(skipMapFitBounds) {
+
+  }, {
+    key: "_resetDrag",
+    value: function _resetDrag(skipMapFitBounds) {
       if (this._dragRectangleG) {
         this._dragRectangleG.remove();
 
@@ -4806,22 +4821,29 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
         if (skipMapFitBounds !== true) {
           // potential performance improvement:
           // we could cache the full extend when addData() is called
-          var fullExtent = this._calculateFullExtent(this._areasFlattended);
+          var bounds = this._getBounds();
 
-          if (fullExtent) this._map.fitBounds(fullExtent);
+          if (bounds) this._fitMapBounds(bounds);
         }
       }
-    },
-
+    }
+  }, {
+    key: "_getBounds",
+    value: function _getBounds() {
+      return this._calculateFullExtent(this._areasFlattended);
+    }
     /**
      * Handles end of drag operations. Zooms the map to the selected items extent.
      */
-    _dragEndHandler: function _dragEndHandler() {
+
+  }, {
+    key: "_dragEndHandler",
+    value: function _dragEndHandler() {
       if (!this._dragStartCoords || !this._gotDragged) {
         this._dragStartCoords = null;
         this._gotDragged = false;
 
-        this._resetDrag();
+        this._resetDrag(false);
 
         return;
       }
@@ -4833,35 +4855,48 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
 
       this._dragStartCoords = null;
       this._gotDragged = false;
-    },
-    _dragStartHandler: function _dragStartHandler() {
+    }
+  }, {
+    key: "_dragStartHandler",
+    value: function _dragStartHandler() {
       event.preventDefault();
       event.stopPropagation();
       this._gotDragged = false;
       this._dragStartCoords = this._dragCache.start = mouse(this._background.node());
-    },
-
+    }
     /*
      * Calculates the full extent of the data array
      */
-    _calculateFullExtent: function _calculateFullExtent(data) {
+
+  }, {
+    key: "_calculateFullExtent",
+    value: function _calculateFullExtent(data) {
       if (!data || data.length < 1) {
         return null;
       }
 
-      var full_extent = new L.latLngBounds(data[0].latlng, data[0].latlng);
-      data.forEach(function (item) {
-        if (!full_extent.contains(item.latlng)) {
-          full_extent.extend(item.latlng);
-        }
+      var minLat = data[0].latlng.lat;
+      var minLng = data[0].latlng.lng;
+      var maxLat = data[0].latlng.lat;
+      var maxLng = data[0].latlng.lng;
+      data.forEach(function (c) {
+        minLng = Math.min(minLng, c.latlng.lng);
+        minLat = Math.min(minLat, c.latlng.lat);
+        maxLng = Math.max(maxLng, c.latlng.lng);
+        maxLat = Math.max(maxLat, c.latlng.lat);
       });
-      return full_extent;
-    },
-
+      return {
+        sw: this._createCoordinate(minLng, minLat),
+        ne: this._createCoordinate(maxLng, maxLat)
+      };
+    }
     /**
      * Make the map fit the route section between given indexes.
      */
-    _fitSection: function _fitSection(index1, index2) {
+
+  }, {
+    key: "_fitSection",
+    value: function _fitSection(index1, index2) {
       var start = Math.min(index1, index2),
           end = Math.max(index1, index2);
       var ext;
@@ -4872,14 +4907,16 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
         ext = [this._areasFlattended[start].latlng, this._areasFlattended[end].latlng];
       }
 
-      if (ext) this._map.fitBounds(ext);
-    },
-
+      if (ext) this._fitMapBounds(ext);
+    }
     /**
      * Expand container when button clicked and shrink when close-Button clicked
      */
-    _expand: function _expand() {
-      if (this.options.expandControls !== true) {
+
+  }, {
+    key: "_expandContainer",
+    value: function _expandContainer() {
+      if (this._expandControls !== true) {
         // always expand, never collapse
         this._showState = false;
       }
@@ -4896,15 +4933,17 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
 
       this._showState = !this._showState;
 
-      if (typeof this.options.expandCallback === "function") {
-        this.options.expandCallback(this._showState);
+      if (typeof this._expandCallback === "function") {
+        this._expandCallback(this._showState);
       }
-    },
-
+    }
     /**
      * Removes the svg elements from the d3 chart
      */
-    _removeChart: function _removeChart() {
+
+  }, {
+    key: "_removeChart",
+    value: function _removeChart() {
       if (this._svg !== undefined) {
         // remove areas
         this._svg.selectAll("path.area").remove(); // remove top border
@@ -4922,20 +4961,23 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
 
         this._svg.selectAll(".horizontalLineText").remove();
       }
-    },
-
+    }
     /**
      * Creates a random int between 0 and max
      */
-    _randomNumber: function _randomNumber(max) {
-      return Math.round(Math.random() * (max - 0));
-    },
-    _d3ColorCategorical: [schemeAccent, schemeDark2, schemeSet2, schemeCategory10, schemeSet3, schemePaired],
 
+  }, {
+    key: "_randomNumber",
+    value: function _randomNumber(max) {
+      return Math.round(Math.random() * (max - 0));
+    }
     /**
-    * Prepares the data needed for the height graph
-    */
-    _prepareData: function _prepareData() {
+     * Prepares the data needed for the height graph
+     */
+
+  }, {
+    key: "_prepareData",
+    value: function _prepareData() {
       this._coordinates = [];
       this._elevations = [];
       this._cumulatedDistances = [];
@@ -5018,13 +5060,13 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
           }
 
           for (var j = 0; j < coordsLength; j++) {
-            ptA = new L.LatLng(data[y].features[i].geometry.coordinates[j][1], data[y].features[i].geometry.coordinates[j][0]);
+            ptA = this._createCoordinate(data[y].features[i].geometry.coordinates[j][0], data[y].features[i].geometry.coordinates[j][1]);
             altitude = data[y].features[i].geometry.coordinates[j][2]; // add elevations, coordinates and point distances only once
             // last point in feature is first of next which is why we have to juggle with indices
 
             if (j < coordsLength - 1) {
-              ptB = new L.LatLng(data[y].features[i].geometry.coordinates[j + 1][1], data[y].features[i].geometry.coordinates[j + 1][0]);
-              ptDistance = ptA.distanceTo(ptB) / 1000; // calculate distances of specific block
+              ptB = this._createCoordinate(data[y].features[i].geometry.coordinates[j + 1][0], data[y].features[i].geometry.coordinates[j + 1][1]);
+              ptDistance = this._calcDistance(ptA, ptB) / 1000; // calculate distances of specific block
 
               cumDistance += ptDistance;
 
@@ -5076,12 +5118,14 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
           this._totalDistance = cumDistance;
         }
       }
-    },
-
+    }
     /**
      * calculates minimum and maximum values for the elevation scale drawn with d3
      */
-    _calculateElevationBounds: function _calculateElevationBounds() {
+
+  }, {
+    key: "_calculateElevationBounds",
+    value: function _calculateElevationBounds() {
       var max = d3Max(this._elevations);
       var min = d3Min(this._elevations);
       var range = max - min;
@@ -5089,53 +5133,44 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
         min: range < 10 ? min - 10 : min - 0.1 * range,
         max: range < 10 ? max + 10 : max + 0.1 * range
       };
-    },
+    } // todonow: make 'static'? or actually move this into leaflet?
 
-    /**
-     * Creates a marker on the map while hovering
-     * @param {Object} ll: actual coordinates of the route
-     * @param {Number} height: height as float
-     * @param {string} type: type of element
-     */
-    _showMapMarker: function _showMapMarker(ll, height, type) {
-      var layerPoint = this._map.latLngToLayerPoint(ll);
+  }, {
+    key: "_drawRouteMarker",
+    value: function _drawRouteMarker(svg, layerPoint, elevation, type) {
+      this._routeMarker = select(svg).append("g").attr('id', 'route-marker');
+
+      var labelBox = this._routeMarker.append("g").attr('class', 'height-focus label').style("display", "block");
 
       var normalizedY = layerPoint.y - 75;
 
-      if (!this._mouseHeightFocus) {
-        var heightG = select(".leaflet-overlay-pane svg").append("g");
-        this._mouseHeightFocus = heightG.append('svg:line').attr('class', 'height-focus line').attr('x2', '0').attr('y2', '0').attr('x1', '0').attr('y1', '0');
-        this._mouseHeightFocusLabel = heightG.append("g").attr('class', 'height-focus label');
-        this._mouseHeightFocusLabelRect = this._mouseHeightFocusLabel.append("rect").attr('class', 'bBox');
-        this._mouseHeightFocusLabelTextElev = this._mouseHeightFocusLabel.append("text").attr('class', 'tspan');
-        this._mouseHeightFocusLabelTextType = this._mouseHeightFocusLabel.append("text").attr('class', 'tspan');
-        var pointG = this._pointG = heightG.append("g").attr("class", "height-focus circle");
-        pointG.append("svg:circle").attr("r", 5).attr("cx", 0).attr("cy", 0).attr("class", "height-focus circle-lower");
-      }
+      this._routeMarker.append('svg:line').attr('class', 'height-focus line').attr("x1", layerPoint.x).attr("x2", layerPoint.x).attr("y1", layerPoint.y).attr("y2", normalizedY).style("display", "block");
 
-      this._mouseHeightFocusLabel.style("display", "block");
+      var pointG = this._routeMarker.append("g").attr("class", "height-focus circle").attr("transform", "translate(" + layerPoint.x + "," + layerPoint.y + ")").style("display", "block");
 
-      this._mouseHeightFocus.attr("x1", layerPoint.x).attr("x2", layerPoint.x).attr("y1", layerPoint.y).attr("y2", normalizedY).style("display", "block");
-
-      this._pointG.attr("transform", "translate(" + layerPoint.x + "," + layerPoint.y + ")").style("display", "block");
-
-      this._mouseHeightFocusLabelRect.attr("x", layerPoint.x + 3).attr("y", normalizedY).attr("class", 'bBox');
-
-      this._mouseHeightFocusLabelTextElev.attr("x", layerPoint.x + 5).attr("y", normalizedY + 12).text(height + " m").attr("class", "tspan mouse-height-box-text");
-
-      this._mouseHeightFocusLabelTextType.attr("x", layerPoint.x + 5).attr("y", normalizedY + 24).text(type).attr("class", "tspan mouse-height-box-text");
+      pointG.append("svg:circle").attr("r", 5).attr("cx", 0).attr("cy", 0).attr("class", "height-focus circle-lower");
+      labelBox.append("rect").attr("x", layerPoint.x + 3).attr("y", normalizedY).attr("class", 'bBox');
+      labelBox.append("text").attr("x", layerPoint.x + 5).attr("y", normalizedY + 12).text(elevation + " m").attr("class", "tspan mouse-height-box-text");
+      labelBox.append("text").attr("x", layerPoint.x + 5).attr("y", normalizedY + 24).text(type).attr("class", "tspan mouse-height-box-text");
 
       var maxWidth = this._dynamicBoxSize("text.tspan")[1]; // box size should change for profile none (no type)
 
 
       var maxHeight = type === "" ? 12 + 6 : 2 * 12 + 6;
       selectAll('.bBox').attr("width", maxWidth + 10).attr("height", maxHeight);
-    },
-
+    }
+  }, {
+    key: "_removeRouteMarker",
+    value: function _removeRouteMarker() {
+      if (this._routeMarker) this._routeMarker.remove();
+    }
     /**
      * Creates the elevation profile
      */
-    _createChart: function _createChart(idx) {
+
+  }, {
+    key: "_createChart",
+    value: function _createChart(idx) {
       var areas = this._categories.length === 0 ? [] : this._categories[idx].geometries;
       this._areasFlattended = [].concat.apply([], areas);
 
@@ -5152,12 +5187,14 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       this._createLegend();
 
       this._createHorizontalLine();
-    },
-
+    }
     /**
      *  Creates focus Line and focus box while hovering
      */
-    _createFocus: function _createFocus() {
+
+  }, {
+    key: "_createFocus",
+    value: function _createFocus() {
       var boxPosition = this._elevationBounds.min;
       var textDistance = 15;
 
@@ -5188,13 +5225,16 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       this._focusLine = this._focusLineGroup.append("line").attr("y1", 0).attr("y2", this._y(this._elevationBounds.min));
       this._distTspan = this._focusDistance.append('tspan').attr("class", "tspan");
       this._altTspan = this._focusHeight.append('tspan').attr("class", "tspan");
-    },
-
+    }
     /**
      *  Creates horizontal Line for dragging
      */
-    _createHorizontalLine: function _createHorizontalLine() {
-      var self = this;
+
+  }, {
+    key: "_createHorizontalLine",
+    value: function _createHorizontalLine() {
+      var _this2 = this;
+
       this._horizontalLine = this._svg.append("line").attr("class", "horizontalLine").attr("x1", 0).attr("x2", this._width - this._margin.left - this._margin.right).attr("y1", this._y(this._elevationBounds.min)).attr("y2", this._y(this._elevationBounds.min)).style("stroke", "black");
       this._elevationValueText = this._svg.append("text").attr("class", "horizontalLineText").attr("x", this._width - this._margin.left - this._margin.right - 20).attr("y", this._y(this._elevationBounds.min) - 10).attr("fill", "black"); //triangle symbol as controller
 
@@ -5207,39 +5247,35 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
         "size": 100
       }];
 
-      var dragstart = function dragstart(d) {
-        select(this).raise().classed("active", true);
+      var dragstart = function dragstart(element) {
+        select(element).raise().classed("active", true);
         select(".horizontalLine").raise().classed("active", true);
       };
 
-      var dragged = function dragged(d) {
-        var maxY = self._svgHeight;
-        var eventY = mouse(self._container)[1] - 10;
-        select(this).attr("transform", function (d) {
+      var dragged = function dragged(element) {
+        var maxY = _this2._svgHeight;
+        var eventY = mouse(_this2._container)[1] - 10;
+        select(element).attr("transform", function (d) {
           return "translate(" + d.x + "," + (eventY < 0 ? 0 : eventY > maxY ? maxY : eventY) + ") rotate(" + d.angle + ")";
         });
         select(".horizontalLine").attr("y1", eventY < 0 ? 0 : eventY > maxY ? maxY : eventY).attr("y2", eventY < 0 ? 0 : eventY > maxY ? maxY : eventY);
 
         if (eventY >= maxY) {
-          self._highlightedCoords = [];
+          _this2._highlightedCoords = [];
         } else {
-          self._highlightedCoords = self._findCoordsForY(eventY);
+          _this2._highlightedCoords = _this2._findCoordsForY(eventY);
         }
 
-        select(".horizontalLineText").attr("y", eventY <= 10 ? 0 : eventY > maxY ? maxY - 10 : eventY - 10).text(format(".0f")(self._y.invert(eventY < 0 ? 0 : eventY > maxY ? maxY : eventY)) + " m");
+        select(".horizontalLineText").attr("y", eventY <= 10 ? 0 : eventY > maxY ? maxY - 10 : eventY - 10).text(format(".0f")(_this2._y.invert(eventY < 0 ? 0 : eventY > maxY ? maxY : eventY)) + " m");
 
-        self._removeMarkedSegmentsOnMap();
-
-        self._markSegmentsOnMap(self._highlightedCoords);
+        _this2._markSegmentsOnMap(_this2._highlightedCoords);
       };
 
-      var dragend = function dragend(d) {
-        select(this).classed("active", false);
+      var dragend = function dragend(element) {
+        select(element).classed("active", false);
         select(".horizontalLine").classed("active", false);
 
-        self._removeMarkedSegmentsOnMap();
-
-        self._markSegmentsOnMap(self._highlightedCoords);
+        _this2._markSegmentsOnMap(_this2._highlightedCoords);
       };
 
       var horizontalDrag = this._svg.selectAll(".horizontal-symbol").data(jsonTriangle).enter().append("path").attr("class", "lineSelection").attr("d", symbol().type(function (d) {
@@ -5252,55 +5288,21 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
         return d.id;
       }).style("fill", function (d) {
         return d.color;
-      }).call(drag().on("start", dragstart).on("drag", dragged).on("end", dragend));
-    },
-
-    /**
-     * Highlights segments on the map above given elevation value
-     */
-    _markSegmentsOnMap: function _markSegmentsOnMap(coords) {
-      if (coords) {
-        if (coords.length > 1) {
-          // some other leaflet plugins can't deal with multi-Polylines very well
-          // therefore multiple single polylines are used here
-          this._markedSegments = L.featureGroup();
-
-          var _iterator = _createForOfIteratorHelper(coords),
-              _step;
-
-          try {
-            for (_iterator.s(); !(_step = _iterator.n()).done;) {
-              var linePart = _step.value;
-              L.polyline(linePart, _objectSpread2(_objectSpread2({}, this._highlightStyle), {
-                interactive: false
-              })).addTo(this._markedSegments);
-            }
-          } catch (err) {
-            _iterator.e(err);
-          } finally {
-            _iterator.f();
-          }
-
-          this._markedSegments.addTo(this._map).bringToFront();
-        } else {
-          this._markedSegments = L.polyline(coords, this._highlightStyle).addTo(this._map);
-        }
-      }
-    },
-
-    /**
-     * Remove the highlighted segments from the map
-     */
-    _removeMarkedSegmentsOnMap: function _removeMarkedSegmentsOnMap() {
-      if (this._markedSegments !== undefined) {
-        this._map.removeLayer(this._markedSegments);
-      }
-    },
-
+      }).call(drag().on("start", function (d) {
+        dragstart(this);
+      }).on("drag", function (d) {
+        dragged(this);
+      }).on("end", function (d) {
+        dragend(this);
+      }));
+    }
     /**
      * Defines the ranges and format of x- and y- scales and appends them
      */
-    _appendScales: function _appendScales() {
+
+  }, {
+    key: "_appendScales",
+    value: function _appendScales() {
       var shortDist = Boolean(this._totalDistance <= 10);
       this._x = linear$1().range([0, this._svgWidth]);
       this._y = linear$1().range([this._svgHeight, 0]);
@@ -5321,34 +5323,61 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
         });
       }
 
-      this._xAxis.ticks(this.options.xTicks ? Math.pow(2, this.options.xTicks) : Math.round(this._svgWidth / 75), "s");
+      this._xAxis.ticks(this._xTicks ? Math.pow(2, this._xTicks) : Math.round(this._svgWidth / 75), "s");
 
       this._yAxis = axisLeft().scale(this._y).tickFormat(function (d) {
         return d + " m";
       });
 
-      this._yAxis.ticks(this.options.yTicks ? Math.pow(2, this.options.yTicks) : Math.round(this._svgHeight / 30), "s");
-    },
-
+      this._yAxis.ticks(this._yTicks ? Math.pow(2, this._yTicks) : Math.round(this._svgHeight / 30), "s");
+    }
     /**
      * Appends a background and adds mouse handlers
      */
-    _appendBackground: function _appendBackground() {
-      var background = this._background = select(this._container).select("svg").select("g").append("rect").attr("width", this._svgWidth).attr("height", this._svgHeight).style("fill", "none").style("stroke", "none").style("pointer-events", "all").on("mousemove.focusbox", this._mousemoveHandler.bind(this)).on("mouseout.focusbox", this._mouseoutHandler.bind(this));
 
-      if (L.Browser.android) {
-        background.on("touchstart.drag", this._dragHandler.bind(this)).on("touchstart.drag", this._dragStartHandler.bind(this)).on("touchstart.focusbox", this._mousemoveHandler.bind(this));
-        L.DomEvent.on(this._container, 'touchend', this._dragEndHandler, this);
+  }, {
+    key: "_appendBackground",
+    value: function _appendBackground() {
+      var _this3 = this;
+
+      var background = this._background = select(this._container).select("svg").select("g").append("rect").attr("width", this._svgWidth).attr("height", this._svgHeight).style("fill", "none").style("stroke", "none").style("pointer-events", "all").on("mousemove.focusbox", function (d, i, ctx) {
+        return _this3._mousemoveHandler(d, i, ctx);
+      }).on("mouseout.focusbox", function () {
+        return _this3._mouseoutHandler();
+      });
+
+      if (this._isMobile()) {
+        background.on("touchstart.drag", function () {
+          return _this3._dragHandler();
+        }).on("touchstart.drag", function () {
+          return _this3._dragStartHandler();
+        }).on("touchstart.focusbox", function (d, i, ctx) {
+          return _this3._mousemoveHandler(d, i, ctx);
+        }); // todonow: not working on mobile??
+
+        this._container.addEventListener('touchend', this._containerDragEndListener);
       } else {
-        background.on("mousemove.focusbox", this._mousemoveHandler.bind(this)).on("mouseout.focusbox", this._mouseoutHandler.bind(this)).on("mousedown.drag", this._dragStartHandler.bind(this)).on("mousemove.drag", this._dragHandler.bind(this));
-        L.DomEvent.on(this._container, 'mouseup', this._dragEndHandler, this);
-      }
-    },
+        background.on("mousemove.focusbox", function (d, i, ctx) {
+          return _this3._mousemoveHandler(d, i, ctx);
+        }).on("mouseout.focusbox", function () {
+          return _this3._mouseoutHandler();
+        }).on("mousedown.drag", function () {
+          return _this3._dragStartHandler();
+        }).on("mousemove.drag", function () {
+          return _this3._dragHandler();
+        }); // we need the _containerDragEndlistener reference to make sure we do not add multiple listeners
+        // when we call appendBackground with different this contexts
 
+        this._container.addEventListener('mouseup', this._containerDragEndListener);
+      }
+    }
     /**
      * Appends a grid to the graph
      */
-    _appendGrid: function _appendGrid() {
+
+  }, {
+    key: "_appendGrid",
+    value: function _appendGrid() {
       this._svg.append("g").attr("class", "grid").attr("transform", "translate(0," + this._svgHeight + ")").call(this._make_x_axis().tickSize(-this._svgHeight, 0, 0).ticks(Math.round(this._svgWidth / 75)).tickFormat(""));
 
       this._svg.append("g").attr("class", "grid").call(this._make_y_axis().tickSize(-this._svgWidth, 0, 0).ticks(Math.round(this._svgHeight / 30)).tickFormat(""));
@@ -5356,40 +5385,50 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       this._svg.append('g').attr("transform", "translate(0," + this._svgHeight + ")").attr('class', 'x axis').call(this._xAxis);
 
       this._svg.append('g').attr("transform", "translate(-2,0)").attr('class', 'y axis').call(this._yAxis);
-    },
-
+    }
     /**
      * Appends the areas to the graph
      */
-    _appendAreas: function _appendAreas(block, idx, eleIdx) {
+
+  }, {
+    key: "_appendAreas",
+    value: function _appendAreas(block, idx, eleIdx) {
+      var _this4 = this;
+
       var c = this._categories[idx].attributes[eleIdx].color;
-      var self = this;
       var area = this._area = d3Area().x(function (d) {
-        var xDiagonalCoordinate = self._x(d.position);
+        var xDiagonalCoordinate = _this4._x(d.position);
 
         d.xDiagonalCoordinate = xDiagonalCoordinate;
         return xDiagonalCoordinate;
       }).y0(this._svgHeight).y1(function (d) {
-        return self._y(d.altitude);
+        return _this4._y(d.altitude);
       }).curve(curveLinear);
       this._areapath = this._svg.append("path").attr("class", "area");
 
       this._areapath.datum(block).attr("d", this._area).attr("stroke", c).styles(this._graphStyle).style("fill", c).style("pointer-events", "none");
-    },
-    // grid lines in x axis function
-    _make_x_axis: function _make_x_axis() {
-      return axisBottom().scale(this._x);
-    },
-    // grid lines in y axis function
-    _make_y_axis: function _make_y_axis() {
-      return axisLeft().scale(this._y);
-    },
+    } // grid lines in x axis function
 
+  }, {
+    key: "_make_x_axis",
+    value: function _make_x_axis() {
+      return axisBottom().scale(this._x);
+    } // grid lines in y axis function
+
+  }, {
+    key: "_make_y_axis",
+    value: function _make_y_axis() {
+      return axisLeft().scale(this._y);
+    }
     /**
      * Appends a selection box for different blocks
      */
-    _createSelectionBox: function _createSelectionBox() {
-      var self = this;
+
+  }, {
+    key: "_createSelectionBox",
+    value: function _createSelectionBox() {
+      var _this5 = this;
+
       var svg = select(this._container).select("svg");
       var width = this._width - this._margin.right,
           height = this._height - this._margin.bottom;
@@ -5416,7 +5455,7 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
 
       selectionSign = svg.selectAll(".select-symbol").data(jsonTriangles); // then add only if needed
 
-      if (self._data.length > 1) {
+      if (this._data.length > 1) {
         selectionSign.enter().append("path").merge(selectionSign).attr("class", "select-symbol").attr("d", symbol().type(function (d) {
           return d.type;
         })).attr("transform", function (d) {
@@ -5429,77 +5468,80 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
           if (d.id === "rightArrowSelection") arrowRight();
           if (d.id === "leftArrowSelection") arrowLeft(); // fake a drag event from cache values to keep selection
 
-          self._gotDragged = true;
-          self._dragStartCoords = self._dragCache.start;
-          self._dragCurrentCoords = self._dragCache.end;
+          _this5._gotDragged = true;
+          _this5._dragStartCoords = _this5._dragCache.start;
+          _this5._dragCurrentCoords = _this5._dragCache.end;
         });
       }
 
       var chooseSelection = function chooseSelection(id) {
-        if (self._selectionText) self._selectionText.remove(); // after cleaning up, there is nothing left to do if there is no data
+        if (_this5._selectionText) _this5._selectionText.remove(); // after cleaning up, there is nothing left to do if there is no data
 
-        if (self._categories.length === 0) return;
-        var type = self._categories[id].info;
+        if (_this5._categories.length === 0) return;
+        var type = _this5._categories[id].info;
 
-        if (typeof self.options.chooseSelectionCallback === "function") {
-          self.options.chooseSelectionCallback(id, type);
+        if (typeof _this5._chooseSelectionCallback === "function") {
+          _this5._chooseSelectionCallback(id, type);
         }
 
         var data = [{
           "selection": type.text
         }];
-        self._selectionText = svg.selectAll('selection_text').data(data).enter().append('text').attr("x", width - 35).attr("y", verticalItemPosition + 4).text(function (d) {
+        _this5._selectionText = svg.selectAll('selection_text').data(data).enter().append('text').attr("x", width - 35).attr("y", verticalItemPosition + 4).text(function (d) {
           return d.selection;
         }).attr("class", "select-info").attr("id", "selectionText").attr("text-anchor", "end");
       };
 
-      chooseSelection(this.options.selectedAttributeIdx);
+      chooseSelection(this._currentSelection);
 
       var arrowRight = function arrowRight() {
-        var idx = self.options.selectedAttributeIdx += 1;
+        var idx = _this5._currentSelection += 1;
 
-        if (idx === self._categories.length) {
-          self.options.selectedAttributeIdx = idx = 0;
+        if (idx === _this5._categories.length) {
+          _this5._currentSelection = idx = 0;
         }
 
         chooseSelection(idx);
 
-        self._removeChart();
+        _this5._markSegmentsOnMap([]); // todonow: should we keep or dismiss the rectangle selection?
 
-        self._removeMarkedSegmentsOnMap();
 
-        self._createChart(idx);
+        _this5._removeChart();
+
+        _this5._createChart(idx);
       };
 
       var arrowLeft = function arrowLeft() {
-        var idx = self.options.selectedAttributeIdx -= 1;
+        var idx = _this5._currentSelection -= 1;
 
         if (idx === -1) {
-          self.options.selectedAttributeIdx = idx = self._categories.length - 1;
+          _this5._currentSelection = idx = _this5._categories.length - 1;
         }
 
         chooseSelection(idx);
 
-        self._removeChart();
+        _this5._markSegmentsOnMap([]); // todonow: should we keep or dismiss the rectangle selection?
 
-        self._removeMarkedSegmentsOnMap();
 
-        self._createChart(idx);
+        _this5._removeChart();
+
+        _this5._createChart(idx);
       };
-    },
-
+    }
     /**
      * Creates and appends legend to chart
      */
-    _createLegend: function _createLegend() {
-      var _this = this;
 
-      var self = this;
+  }, {
+    key: "_createLegend",
+    value: function _createLegend() {
+      var _this6 = this;
+
       var data = [];
 
       if (this._categories.length > 0) {
-        for (var item in this._categories[this.options.selectedAttributeIdx].legend) {
-          data.push(this._categories[this.options.selectedAttributeIdx].legend[item]);
+        for (var item in this._categories[this._currentSelection].legend) {
+          data.push(this._categories[this._currentSelection].legend[item]);
         }
       }
 
@@ -5535,7 +5577,7 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
 
       legend.append('text').attr('class', 'legend-text').attr('x', 30).attr('y', 6 * 7).text(function (d, i) {
         var textProp = d.text;
-        self._boxBoundY = (height - 2 * height / 3 + 7) * i;
+        _this6._boxBoundY = (height - 2 * height / 3 + 7) * i;
         return textProp;
       });
 
@@ -5547,20 +5589,22 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       }).on('mouseover', function () {
         selectAll('.legend').style("display", "block");
       }).on('mouseleave', function () {
-        if (!_this._showLegend) {
+        if (!_this6._showLegend) {
           selectAll('.legend').style("display", "none");
         }
       }).on('click', function () {
-        _this._showLegend = !_this._showLegend;
+        _this6._showLegend = !_this6._showLegend;
       });
-    },
-
+    }
     /**
-    * calculates the margins of boxes
-    * @param {String} className: name of the class
-    * @return {array} borders: number of text lines, widest range of text
-    */
-    _dynamicBoxSize: function _dynamicBoxSize(className) {
+     * calculates the margins of boxes
+     * @param {String} className: name of the class
+     * @return {array} borders: number of text lines, widest range of text
+     */
+
+  }, {
+    key: "_dynamicBoxSize",
+    value: function _dynamicBoxSize(className) {
       var cnt = selectAll(className).nodes().length;
       var widths = [];
 
@@ -5570,126 +5614,56 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
 
       var maxWidth = d3Max(widths);
       return [cnt, maxWidth];
-    },
-
+    }
     /**
      * Creates top border line on graph
      */
-    _createBorderTopLine: function _createBorderTopLine() {
-      var self = this;
+
+  }, {
+    key: "_createBorderTopLine",
+    value: function _createBorderTopLine() {
+      var _this7 = this;
+
       var data = this._areasFlattended;
       var borderTopLine = line().x(function (d) {
-        var x = self._x;
+        var x = _this7._x;
         return x(d.position);
       }).y(function (d) {
-        var y = self._y;
+        var y = _this7._y;
         return y(d.altitude);
       }).curve(curveBasis);
 
       this._svg.append("svg:path").attr("d", borderTopLine(data)).attr('class', 'border-top');
-    },
-
-    /*
+    }
+    /**
      * Handles the mouseout event when the mouse leaves the background
      */
-    _mouseoutHandler: function _mouseoutHandler() {
-      for (var _i = 0, _arr = ['_focusLine', '_focus', '_pointG', '_mouseHeightFocus', '_mouseHeightFocusLabel']; _i < _arr.length; _i++) {
-        var param = _arr[_i];
 
-        if (this[param]) {
-          this[param].style('display', 'none');
-        }
-      }
-    },
-
-    /*
-     * Handles the mouseout event and clears the current point info.
-     * @param {int} delay - time before markers are removed in milliseconds
-     */
-    mapMouseoutHandler: function mapMouseoutHandler() {
-      var _this2 = this;
-
-      var delay = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1000;
-
-      if (this.mouseoutDelay) {
-        window.clearTimeout(this.mouseoutDelay);
-      }
-
-      this.mouseoutDelay = window.setTimeout(function () {
-        _this2._mouseoutHandler();
-      }, delay);
-    },
-
-    /*
-     * Handles the mouseover the map and displays distance and altitude level.
-     * Since this does a lookup of the point on the graph
-     * the closest to the given latlng on the provided event, it could be slow.
-     */
-    mapMousemoveHandler: function mapMousemoveHandler(event) {
-      var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
-          _ref$showMapMarker = _ref.showMapMarker,
-          showMapMarker = _ref$showMapMarker === void 0 ? true : _ref$showMapMarker;
-
-      if (this._areasFlattended === false) {
-        return;
-      } // initialize the vars for the closest item calculation
-
-
-      var closestItem = null; // large enough to be trumped by any point on the chart
-
-      var closestDistance = 2 * Math.pow(100, 2); // consider a good enough match if the given point (lat and lng) is within
-      // 1.1 meters of a point on the chart (there are 111,111 meters in a degree)
-
-      var exactMatchRounding = 1.1 / 111111;
-
-      var _iterator2 = _createForOfIteratorHelper(this._areasFlattended),
-          _step2;
-
-      try {
-        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-          var item = _step2.value;
-          var latDiff = event.latlng.lat - item.latlng.lat;
-          var lngDiff = event.latlng.lng - item.latlng.lng; // first check for an almost exact match; it's simple and avoid further calculations
-
-          if (Math.abs(latDiff) < exactMatchRounding && Math.abs(lngDiff) < exactMatchRounding) {
-            this._internalMousemoveHandler(item, showMapMarker);
-
-            break;
-          } // calculate the squared distance from the current to the given;
-          // it's the squared distance, to avoid the expensive square root
-
-
-          var distance = Math.pow(latDiff, 2) + Math.pow(lngDiff, 2);
-
-          if (distance < closestDistance) {
-            closestItem = item;
-            closestDistance = distance;
-          }
-        }
-      } catch (err) {
-        _iterator2.e(err);
-      } finally {
-        _iterator2.f();
-      }
-
-      if (closestItem) this._internalMousemoveHandler(closestItem, showMapMarker);
-    },
-
-    /*
+  }, {
+    key: "_mouseoutHandler",
+    value: function _mouseoutHandler() {
+      this._showMapMarker(null);
+    }
+    /**
      * Handles the mouseover the chart and displays distance and altitude level
      */
-    _mousemoveHandler: function _mousemoveHandler(d, i, ctx) {
+
+  }, {
+    key: "_mousemoveHandler",
+    value: function _mousemoveHandler(d, i, ctx) {
       var coords = mouse(this._svg.node());
 
       var item = this._areasFlattended[this._findItemForX(coords[0])];
 
       if (item) this._internalMousemoveHandler(item);
-    },
-
-    /*
+    }
+    /**
      * Handles the mouseover, given the current item the mouse is over
      */
-    _internalMousemoveHandler: function _internalMousemoveHandler(item) {
+
+  }, {
+    key: "_internalMousemoveHandler",
+    value: function _internalMousemoveHandler(item) {
       var showMapMarker = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
       var areaLength;
       var alt = item.altitude,
@@ -5700,9 +5674,9 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       var boxWidth = this._dynamicBoxSize(".focusbox text")[1] + 10;
 
       if (areaIdx === 0) {
-        areaLength = this._categories[this.options.selectedAttributeIdx].distances[areaIdx];
+        areaLength = this._categories[this._currentSelection].distances[areaIdx];
       } else {
-        areaLength = this._categories[this.options.selectedAttributeIdx].distances[areaIdx] - this._categories[this.options.selectedAttributeIdx].distances[areaIdx - 1];
+        areaLength = this._categories[this._currentSelection].distances[areaIdx] - this._categories[this._currentSelection].distances[areaIdx - 1];
       }
 
       if (showMapMarker) {
@@ -5731,12 +5705,14 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       if (this._x(dist) + boxWidth > totalWidth) {
         this._focus.style("display", "initial").attr("transform", "translate(" + xPositionBox + "," + this._y(this._elevationBounds.min) + ")");
       }
-    },
-
-    /*
+    }
+    /**
      * Finds a data entry for a given x-coordinate of the diagram
      */
-    _findItemForX: function _findItemForX(x) {
+
+  }, {
+    key: "_findItemForX",
+    value: function _findItemForX(x) {
       var bisect = bisector(function (d) {
         return d.position;
       }).left;
@@ -5744,12 +5720,14 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       var xInvert = this._x.invert(x);
 
       return bisect(this._areasFlattended, xInvert);
-    },
-
-    /*
+    }
+    /**
      * Finds data entries above a given y-elevation value and returns geo-coordinates
      */
-    _findCoordsForY: function _findCoordsForY(y) {
+
+  }, {
+    key: "_findCoordsForY",
+    value: function _findCoordsForY(y) {
       var bisect = function bisect(b, yInvert) {
         //save indexes of elevation values above the horizontal line
         var list = [];
@@ -5785,16 +5763,171 @@ var schemeSet3 = colors("8dd3c7ffffb3bebadafb807280b1d3fdb462b3de69fccde5d9d9d9b
       var yInvert = this._y.invert(y);
 
       return bisect(this._areasFlattended, yInvert);
-    },
-
-    /*
+    }
+    /**
      * Checks the user passed translations, if they don't exist, fallback to the default translations
      */
-    _getTranslation: function _getTranslation(key) {
-      if (this.options.translation[key]) return this.options.translation[key];
+
+  }, {
+    key: "_getTranslation",
+    value: function _getTranslation(key) {
+      if (this._translation[key]) return this._translation[key];
       if (this._defaultTranslation[key]) return this._defaultTranslation[key];
       console.error("Unexpected error when looking up the translation for " + key);
       return 'No translation found';
+    }
+  }, {
+    key: "_createCoordinate",
+    value: function _createCoordinate(lng, lat) {
+      return {
+        lat: lat,
+        lng: lng
+      };
+    }
+    /**
+     * calculates the distance between two (lat,lng) coordinates in meters
+     */
+
+  }, {
+    key: "_calcDistance",
+    value: function _calcDistance(a, b) {
+      var deg2rad = Math.PI / 180;
+      var sinDLat = Math.sin((b.lat - a.lat) * deg2rad / 2);
+      var sinDLon = Math.sin((b.lng - a.lng) * deg2rad / 2);
+      var f = sinDLat * sinDLat + Math.cos(a.lat * deg2rad) * Math.cos(b.lat * deg2rad) * sinDLon * sinDLon;
+      return 6371000 * 2 * Math.atan2(Math.sqrt(f), Math.sqrt(1 - f));
+    }
+  }, {
+    key: "_createDOMElement",
+    value: function _createDOMElement(tagName, className, container) {
+      var el = document.createElement(tagName);
+      el.className = className || '';
+      if (container) container.appendChild(el);
+      return el;
+    }
+  }, {
+    key: "_isMobile",
+    value: function _isMobile() {
+      return /Android|webOS|iPhone|iPad|Mac|Macintosh|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+  }]);
+
+  return HeightGraph;
+}();
+
+(function (factory, window) {
+  // define an AMD module that relies on 'leaflet'
+  if (typeof define === 'function' && define.amd) {
+    define(['leaflet'], factory); // define a Common JS module that relies on 'leaflet'
+  } else if ((typeof exports === "undefined" ? "undefined" : _typeof(exports)) === 'object') {
+    if (typeof window !== 'undefined' && window.L) {
+      module.exports = factory(L);
+    } else {
+      module.exports = factory(require('leaflet'));
+    }
+  } // attach your plugin to the global 'L' variable
+
+
+  if (typeof window !== 'undefined' && window.L) {
+    window.L.Control.Heightgraph = factory(L);
+  }
+})(function (L) {
+  L.Control.Heightgraph = L.Control.extend({
+    options: {
+      position: 'bottomright'
+    },
+    initialize: function initialize(_options) {
+      L.Util.setOptions(this, _options);
+      this._highlightStyle = this.options.highlightStyle || {
+        color: 'red'
+      };
+    },
+    onAdd: function onAdd(map) {
+      this._container = L.DomUtil.create("div", "heightgraph");
+      L.DomEvent.disableClickPropagation(this._container);
+      var self = this;
+      var callbacks = {
+        _showMapMarker: self._showMapMarker.bind(this),
+        _fitMapBounds: self._fitMapBounds.bind(this),
+        _markSegmentsOnMap: self._markSegmentsOnMap.bind(this)
+      };
+      this._heightgraph = new HeightGraph(this._container, this.options, callbacks);
+      return this._container;
+    },
+    onRemove: function onRemove(map) {
+      this._markSegmentsOnMap([]);
+
+      this._heightgraph = null;
+      this._container = null;
+    },
+
+    /**
+     * add Data from geoJson and call all functions
+     * @param {Object} data
+     */
+    addData: function addData(data) {
+      this._heightgraph.addData(data);
+    },
+    resize: function resize(size) {
+      this._heightgraph.resize(size);
+    },
+    _fitMapBounds: function _fitMapBounds(bounds) {
+      bounds = L.latLngBounds(bounds.sw, bounds.ne);
+
+      this._map.fitBounds(bounds);
+    },
+
+    /**
+     * Creates a marker on the map while hovering
+     * @param {Object} ll: actual coordinates of the route
+     * @param {Number} elevation: height as float
+     * @param {string} type: type of element
+     */
+    _showMapMarker: function _showMapMarker(ll, elevation, type) {
+      this._heightgraph._removeRouteMarker();
+
+      if (ll) {
+        var layerPoint = this._map.latLngToLayerPoint(ll);
+
+        var svg = document.querySelector(".leaflet-overlay-pane svg");
+
+        this._heightgraph._drawRouteMarker(svg, layerPoint, elevation, type);
+      }
+    },
+
+    /**
+     * Highlights segments on the map above given elevation value
+     */
+    _markSegmentsOnMap: function _markSegmentsOnMap(coords) {
+      if (this._markedSegments !== undefined) {
+        this._map.removeLayer(this._markedSegments);
+      }
+
+      if (coords.length === 1) {
+        this._markedSegments = L.polyline(coords, this._highlightStyle).addTo(this._map);
+      } else {
+        // some other leaflet plugins can't deal with multi-Polylines very well
+        // therefore multiple single polylines are used here
+        this._markedSegments = L.featureGroup();
+
+        var _iterator = _createForOfIteratorHelper(coords),
+            _step;
+
+        try {
+          for (_iterator.s(); !(_step = _iterator.n()).done;) {
+            var linePart = _step.value;
+            L.polyline(linePart, _objectSpread2(_objectSpread2({}, this._highlightStyle), {
+              interactive: false
+            })).addTo(this._markedSegments);
+          }
+        } catch (err) {
+          _iterator.e(err);
+        } finally {
+          _iterator.f();
+        }
+
+        this._markedSegments.addTo(this._map).bringToFront();
+      }
     }
   });
 
