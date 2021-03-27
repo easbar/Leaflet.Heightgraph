@@ -1,4 +1,3 @@
-import 'mapbox-gl';
 import {HeightGraph} from "./heightgraph";
 
 export class MapboxHeightGraph {
