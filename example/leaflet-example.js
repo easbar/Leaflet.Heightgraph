@@ -1,4 +1,11 @@
-const changeData = setNumber => {
+import {LeafletHeightGraph} from "../src/LeafletHeightGraph";
+
+document.querySelector('#data1').addEventListener('click', e => changeData(1));
+document.querySelector('#data2').addEventListener('click', e => changeData(2));
+document.querySelector('#data3').addEventListener('click', e => changeData(3))
+document.querySelector('#data4').addEventListener('click', e => changeData(4));
+
+export const changeData = setNumber => {
     let dataSet = setNumber === '1' ? geojson1 : setNumber === '2' ? geojson2 : setNumber === '3' ? geojson3 : []
     displayGroup.clearLayers()
     if (dataSet.length !== 0) {
@@ -24,7 +31,7 @@ displayGroup.addTo(map)
 
 const bounds = new L.LatLngBounds(new L.LatLng(47.323989, 8.108683), new L.LatLng(46.96485, 8.029803))
 
-const hg = L.control.heightgraph({
+const hg = new LeafletHeightGraph({
     mappings: colorMappings,
     graphStyle: {
         opacity: 0.8,

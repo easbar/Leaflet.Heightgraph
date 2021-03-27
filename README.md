@@ -30,7 +30,7 @@ You can import the required libraries in the head of your index.html file
  <link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css" />
  <script src="node_modules/leaflet/dist/leaflet.js"></script>
  <link rel="stylesheet" href="src/heightgraph.css"/>
- <script type="text/javascript" src="src/L.Control.Heightgraph.js"></script>
+ <script type="text/javascript" src="src/LeafletHeightGraph.js"></script>
 ```
 
 When using NPM you can require all needed libraries like this.

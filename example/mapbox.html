@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <title>Height Graph Development Example</title>
+    <title>Mapbox Height Graph Development Example</title>
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
     <style>
         html, body, #map {
@@ -15,14 +15,11 @@
 
     <link href='https://api.mapbox.com/mapbox-gl-js/v1.13.0/mapbox-gl.css' rel='stylesheet' />
     <script src='https://api.mapbox.com/mapbox-gl-js/v1.13.0/mapbox-gl.js'></script>
-    <!-- todonow: remove leaflet dependency -->
-    <script src="../node_modules/leaflet/dist/leaflet.js"></script>
     <link rel="stylesheet" href="../src/heightgraph.css"/>
     <script type="text/javascript" src="../example/data.js"></script>
     <script type="text/javascript" src="../example/data_2.js"></script>
     <script type="text/javascript" src="../example/data_3.js"></script>
     <script type="text/javascript" src="../example/mappings.js"></script>
-    <script type="module" src="../src/MapboxHeightGraph.js"></script>
 
 </head>
 <body>
@@ -34,6 +31,5 @@
 </div>
 <div id="map"></div>
 </body>
-<!-- todonow: change this to non-module to demonstrate it works? -->
-<script type="module" src="../example/mapbox.js" defer></script>
+<script type="module" src="../example/mapbox-example.js" defer></script>
 </html>
