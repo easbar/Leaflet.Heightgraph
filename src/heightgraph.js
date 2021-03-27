@@ -53,15 +53,34 @@ export class HeightGraph {
         this._fitMapBounds = callbacks._fitMapBounds;
         this._markSegmentsOnMap = callbacks._markSegmentsOnMap;
 
+        this._defaultTranslation = {
+            distance: "Distance",
+            elevation: "Elevation",
+            segment_length: "Segment length",
+            type: "Type",
+            legend: "Legend"
+        }
+
+        this._d3ColorCategorical = [
+            schemeAccent,
+            schemeDark2,
+            schemeSet2,
+            schemeCategory10,
+            schemeSet3,
+            schemePaired
+        ]
+
+        this._containerDragEndListener = () => this._dragEndHandler();
+
         this._svgWidth = this._width - this._margin.left - this._margin.right;
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
         if (this._expandControls) {
             this._button = this._createDOMElement('div', "heightgraph-toggle", this._container);
             this._createDOMElement("a", "heightgraph-toggle-icon", this._button);
-            this._button.addEventListener('click', this._expandContainer);
+            this._button.addEventListener('click', () => this._expandContainer());
 
             this._closeButton = this._createDOMElement("a", "heightgraph-close-icon", this._container)
-            this._closeButton.addEventListener('click', this._expandContainer);
+            this._closeButton.addEventListener('click', () => this._expandContainer());
         }
         this._showState = false;
         this._stopPropagation();
@@ -74,15 +93,7 @@ export class HeightGraph {
         if (this._expand) this._expandContainer();
     }
 
-    _defaultTranslation = {
-        distance: "Distance",
-        elevation: "Elevation",
-        segment_length: "Segment length",
-        type: "Type",
-        legend: "Legend"
-    }
-
-    resize = (size) => {
+    resize(size) {
         if (size.width)
             this._width = size.width;
         if (size.height)
@@ -102,7 +113,7 @@ export class HeightGraph {
     /**
      * TODO: this should be refactored to avoid calling _addData on resize
      */
-    addData = (data) => {
+    addData(data) {
         this._markSegmentsOnMap([]);
         if (this._svg !== undefined) {
             this._svg.selectAll("*")
@@ -124,7 +135,7 @@ export class HeightGraph {
         this._createSelectionBox();
     }
 
-    _stopPropagation = () => {
+    _stopPropagation() {
         this._container.addEventListener('click mousedown touchstart dblclick', e => {
             if (e.stopPropagation) {
                 e.stopPropagation();
@@ -136,7 +147,7 @@ export class HeightGraph {
         });
     }
 
-    _dragHandler = () => {
+    _dragHandler() {
         //we don´t want map events to occur here
         if (typeof event !== 'undefined') {
             event.preventDefault();
@@ -149,7 +160,7 @@ export class HeightGraph {
     /**
      * Draws the currently dragged rectangle over the chart.
      */
-    _drawDragRectangle = () => {
+    _drawDragRectangle() {
         // todonow: sometimes (depending on which path detail we select) the rectangle is shown *behind* the graph?!
         if (!this._dragStartCoords) {
             return;
@@ -178,7 +189,7 @@ export class HeightGraph {
      * Removes the drag rectangle
      * @param {boolean} skipMapFitBounds - whether to zoom the map back to the total extent of the data
      */
-    _resetDrag = (skipMapFitBounds) => {
+    _resetDrag(skipMapFitBounds) {
         if (this._dragRectangleG) {
             this._dragRectangleG.remove();
             this._dragRectangleG = null;
@@ -193,14 +204,14 @@ export class HeightGraph {
         }
     }
 
-    _getBounds = () => {
+    _getBounds() {
         return this._calculateFullExtent(this._areasFlattended);
     }
 
     /**
      * Handles end of drag operations. Zooms the map to the selected items extent.
      */
-    _dragEndHandler = () => {
+    _dragEndHandler() {
         if (!this._dragStartCoords || !this._gotDragged) {
             this._dragStartCoords = null;
             this._gotDragged = false;
@@ -214,7 +225,7 @@ export class HeightGraph {
         this._gotDragged = false;
     }
 
-    _dragStartHandler = () => {
+    _dragStartHandler() {
         event.preventDefault();
         event.stopPropagation();
         this._gotDragged = false;
@@ -224,7 +235,7 @@ export class HeightGraph {
     /*
      * Calculates the full extent of the data array
      */
-    _calculateFullExtent = (data) => {
+    _calculateFullExtent(data) {
         if (!data || data.length < 1) {
             return null;
         }
@@ -247,7 +258,7 @@ export class HeightGraph {
     /**
      * Make the map fit the route section between given indexes.
      */
-    _fitSection = (index1, index2) => {
+    _fitSection(index1, index2) {
         const start = Math.min(index1, index2), end = Math.max(index1, index2)
         let ext
         if (start !== end) {
@@ -261,7 +272,7 @@ export class HeightGraph {
     /**
      * Expand container when button clicked and shrink when close-Button clicked
      */
-    _expandContainer = () => {
+    _expandContainer() {
         if (this._expandControls !== true) {
             // always expand, never collapse
             this._showState = false;
@@ -292,7 +303,7 @@ export class HeightGraph {
     /**
      * Removes the svg elements from the d3 chart
      */
-    _removeChart = () => {
+    _removeChart() {
         if (this._svg !== undefined) {
             // remove areas
             this._svg.selectAll("path.area")
@@ -316,21 +327,14 @@ export class HeightGraph {
     /**
      * Creates a random int between 0 and max
      */
-    _randomNumber = (max) => Math.round((Math.random() * (max - 0)))
-
-    _d3ColorCategorical = [
-        schemeAccent,
-        schemeDark2,
-        schemeSet2,
-        schemeCategory10,
-        schemeSet3,
-        schemePaired
-    ]
+    _randomNumber(max) {
+        return Math.round((Math.random() * (max - 0)));
+    }
 
     /**
      * Prepares the data needed for the height graph
      */
-    _prepareData = () => {
+    _prepareData() {
         this._coordinates = [];
         this._elevations = [];
         this._cumulatedDistances = [];
@@ -445,7 +449,7 @@ export class HeightGraph {
     /**
      * calculates minimum and maximum values for the elevation scale drawn with d3
      */
-    _calculateElevationBounds = () => {
+    _calculateElevationBounds() {
         const max = d3Max(this._elevations)
         const min = d3Min(this._elevations)
         const range = max - min
@@ -456,7 +460,7 @@ export class HeightGraph {
     }
 
     // todonow: make 'static'? or actually move this into leaflet?
-    _drawRouteMarker = (svg, layerPoint, elevation, type) => {
+    _drawRouteMarker(svg, layerPoint, elevation, type) {
         this._routeMarker = select(svg).append("g").attr('id', 'route-marker')
         const labelBox = this._routeMarker.append("g")
             .attr('class', 'height-focus label')
@@ -508,7 +512,7 @@ export class HeightGraph {
     /**
      * Creates the elevation profile
      */
-    _createChart = (idx) => {
+    _createChart(idx) {
         let areas = this._categories.length === 0
             ? []
             : this._categories[idx].geometries;
@@ -526,7 +530,7 @@ export class HeightGraph {
     /**
      *  Creates focus Line and focus box while hovering
      */
-    _createFocus = () => {
+    _createFocus() {
         const boxPosition = this._elevationBounds.min
         const textDistance = 15
         if (this._focus) {
@@ -586,7 +590,7 @@ export class HeightGraph {
     /**
      *  Creates horizontal Line for dragging
      */
-    _createHorizontalLine = () => {
+    _createHorizontalLine() {
         this._horizontalLine = this._svg.append("line")
             .attr("class", "horizontalLine")
             .attr("x1", 0)
@@ -660,7 +664,7 @@ export class HeightGraph {
     /**
      * Defines the ranges and format of x- and y- scales and appends them
      */
-    _appendScales = () => {
+    _appendScales() {
         const shortDist = Boolean(this._totalDistance <= 10)
         this._x = scaleLinear()
             .range([0, this._svgWidth]);
@@ -685,7 +689,7 @@ export class HeightGraph {
     /**
      * Appends a background and adds mouse handlers
      */
-    _appendBackground = () => {
+    _appendBackground() {
         const background = this._background = select(this._container)
             .select("svg")
             .select("g")
@@ -695,27 +699,29 @@ export class HeightGraph {
             .style("fill", "none")
             .style("stroke", "none")
             .style("pointer-events", "all")
-            .on("mousemove.focusbox", this._mousemoveHandler.bind(this))
-            .on("mouseout.focusbox", this._mouseoutHandler.bind(this))
+            .on("mousemove.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx))
+            .on("mouseout.focusbox", () => this._mouseoutHandler())
         if (this._isMobile()) {
-            background.on("touchstart.drag", this._dragHandler.bind(this))
-                .on("touchstart.drag", this._dragStartHandler.bind(this))
-                .on("touchstart.focusbox", this._mousemoveHandler.bind(this));
+            background.on("touchstart.drag", () => this._dragHandler())
+                .on("touchstart.drag", () => this._dragStartHandler())
+                .on("touchstart.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx));
             // todonow: not working on mobile??
-            this._container.addEventListener('touchend', this._dragEndHandler);
+            this._container.addEventListener('touchend', this._containerDragEndListener);
         } else {
-            background.on("mousemove.focusbox", this._mousemoveHandler.bind(this))
-                .on("mouseout.focusbox", this._mouseoutHandler.bind(this))
-                .on("mousedown.drag", this._dragStartHandler.bind(this))
-                .on("mousemove.drag", this._dragHandler.bind(this));
-            this._container.addEventListener('mouseup', this._dragEndHandler);
+            background.on("mousemove.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx))
+                .on("mouseout.focusbox", () => this._mouseoutHandler())
+                .on("mousedown.drag", () => this._dragStartHandler())
+                .on("mousemove.drag", () => this._dragHandler());
+            // we need the _containerDragEndlistener reference to make sure we do not add multiple listeners
+            // when we call appendBackground with different this contexts
+            this._container.addEventListener('mouseup', this._containerDragEndListener);
         }
     }
 
     /**
      * Appends a grid to the graph
      */
-    _appendGrid = () => {
+    _appendGrid() {
         this._svg.append("g")
             .attr("class", "grid")
             .attr("transform", "translate(0," + this._svgHeight + ")")
@@ -742,7 +748,7 @@ export class HeightGraph {
     /**
      * Appends the areas to the graph
      */
-    _appendAreas = (block, idx, eleIdx) => {
+    _appendAreas(block, idx, eleIdx) {
         const c = this._categories[idx].attributes[eleIdx].color
         const area = this._area = d3Area().x(d => {
             const xDiagonalCoordinate = this._x(d.position)
@@ -760,13 +766,13 @@ export class HeightGraph {
     }
 
     // grid lines in x axis function
-    _make_x_axis = () => {
+    _make_x_axis() {
         return axisBottom()
             .scale(this._x);
     }
 
     // grid lines in y axis function
-    _make_y_axis = () => {
+    _make_y_axis() {
         return axisLeft()
             .scale(this._y);
     }
@@ -774,7 +780,7 @@ export class HeightGraph {
     /**
      * Appends a selection box for different blocks
      */
-    _createSelectionBox = () => {
+    _createSelectionBox() {
         const svg = select(this._container).select("svg")
         const width = this._width - this._margin.right,
             height = this._height - this._margin.bottom
@@ -875,7 +881,7 @@ export class HeightGraph {
     /**
      * Creates and appends legend to chart
      */
-    _createLegend = () => {
+    _createLegend() {
         const data = []
         if (this._categories.length > 0) {
             for (let item in this._categories[this._currentSelection].legend) {
@@ -954,7 +960,7 @@ export class HeightGraph {
      * @param {String} className: name of the class
      * @return {array} borders: number of text lines, widest range of text
      */
-    _dynamicBoxSize = (className) => {
+    _dynamicBoxSize(className) {
         const cnt = selectAll(className).nodes().length
         const widths = []
         for (let i = 0; i < cnt; i++) {
@@ -969,7 +975,7 @@ export class HeightGraph {
     /**
      * Creates top border line on graph
      */
-    _createBorderTopLine = () => {
+    _createBorderTopLine() {
         const data = this._areasFlattended
         const borderTopLine = line()
             .x(d => {
@@ -989,14 +995,14 @@ export class HeightGraph {
     /**
      * Handles the mouseout event when the mouse leaves the background
      */
-    _mouseoutHandler = () => {
+    _mouseoutHandler() {
         this._showMapMarker(null);
     }
 
     /**
      * Handles the mouseover the chart and displays distance and altitude level
      */
-    _mousemoveHandler = (d, i, ctx) => {
+    _mousemoveHandler(d, i, ctx) {
         const coords = mouse(this._svg.node())
         const item = this._areasFlattended[this._findItemForX(coords[0])];
         if (item) this._internalMousemoveHandler(item);
@@ -1005,7 +1011,7 @@ export class HeightGraph {
     /**
      * Handles the mouseover, given the current item the mouse is over
      */
-    _internalMousemoveHandler = (item, showMapMarker = true) => {
+    _internalMousemoveHandler(item, showMapMarker = true) {
         let areaLength
         const alt = item.altitude, dist = item.position,
             ll = item.latlng, areaIdx = item.areaIdx, type = item.type
@@ -1041,7 +1047,7 @@ export class HeightGraph {
     /**
      * Finds a data entry for a given x-coordinate of the diagram
      */
-    _findItemForX = (x) => {
+    _findItemForX(x) {
         const bisect = bisector(d => d.position).left
         const xInvert = this._x.invert(x)
         return bisect(this._areasFlattended, xInvert);
@@ -1050,7 +1056,7 @@ export class HeightGraph {
     /**
      * Finds data entries above a given y-elevation value and returns geo-coordinates
      */
-    _findCoordsForY = (y) => {
+    _findCoordsForY(y) {
         let bisect = (b, yInvert) => {
             //save indexes of elevation values above the horizontal line
             const list = []
@@ -1085,7 +1091,7 @@ export class HeightGraph {
     /**
      * Checks the user passed translations, if they don't exist, fallback to the default translations
      */
-    _getTranslation = (key) => {
+    _getTranslation(key) {
         if (this._translation[key])
             return this._translation[key];
         if (this._defaultTranslation[key])
@@ -1094,13 +1100,13 @@ export class HeightGraph {
         return 'No translation found';
     }
 
-    _createCoordinate = (lng, lat) => {
+    _createCoordinate(lng, lat) {
         return {lat: lat, lng: lng};
     }
     /**
      * calculates the distance between two (lat,lng) coordinates in meters
      */
-    _calcDistance = (a, b) => {
+    _calcDistance(a, b) {
         const deg2rad = Math.PI / 180;
         const sinDLat = Math.sin((b.lat - a.lat) * deg2rad / 2);
         const sinDLon = Math.sin((b.lng - a.lng) * deg2rad / 2);
