@@ -30,6 +30,13 @@ const defaultOptions = {
     selectedAttributeIdx: 0,
 }
 
+/**
+ * @param options
+ *   - pointSelectedCallback: receives a point ({lng, lat}), an elevation (number) and a description (string)
+ *                            the point can be null which means no point was selected
+ *   - areaSelectedCallback: receives the bounds of a selected area rectangle ({sw, ne})
+ *   - routeSegmentsSelectedCallback: receives an array of points ([{lng, lat}])
+ */
 export class HeightGraph {
     constructor(container, options, callbacks) {
         this._container = container;
@@ -44,14 +51,13 @@ export class HeightGraph {
         this._yTicks = options.yTicks;
         this._translation = options.translation;
         this._currentSelection = options.selectedAttributeIdx;
-        this._chooseSelectionCallback = options.chooseSelectionCallback;
         this._expand = options.expand;
         this._expandControls = options.expandControls;
         this._expandCallback = options.expandCallback;
-        // todonow
-        this._showMapMarker = callbacks._showMapMarker;
-        this._fitMapBounds = callbacks._fitMapBounds;
-        this._markSegmentsOnMap = callbacks._markSegmentsOnMap;
+        this._pointSelected = callbacks.pointSelectedCallback;
+        this._areaSelected = callbacks.areaSelectedCallback;
+        this._routeSegmentsSelected = callbacks.routeSegmentsSelectedCallback;
+        this._chooseSelectionCallback = options.chooseSelectionCallback;
 
         this._defaultTranslation = {
             distance: "Distance",
@@ -114,7 +120,7 @@ export class HeightGraph {
      * TODO: this should be refactored to avoid calling _addData on resize
      */
     addData(data) {
-        this._markSegmentsOnMap([]);
+        this._routeSegmentsSelected([]);
         if (this._svg !== undefined) {
             this._svg.selectAll("*")
                 .remove();
@@ -199,7 +205,7 @@ export class HeightGraph {
                 // potential performance improvement:
                 // we could cache the full extend when addData() is called
                 let bounds = this._getBounds();
-                if (bounds) this._fitMapBounds(bounds);
+                if (bounds) this._areaSelected(bounds);
             }
         }
     }
@@ -266,7 +272,7 @@ export class HeightGraph {
         } else if (this._areasFlattended.length > 0) {
             ext = [this._areasFlattended[start].latlng, this._areasFlattended[end].latlng];
         }
-        if (ext) this._fitMapBounds(ext);
+        if (ext) this._areaSelected(ext);
     }
 
     /**
@@ -587,7 +593,7 @@ export class HeightGraph {
             select(".horizontalLineText")
                 .attr("y", (eventY <= 10 ? 0 : (eventY > maxY ? maxY - 10 : eventY - 10)))
                 .text(format(".0f")(this._y.invert((eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)))) + " m");
-            this._markSegmentsOnMap(this._highlightedCoords);
+            this._routeSegmentsSelected(this._highlightedCoords);
         }
 
         const dragend = (element) => {
@@ -595,7 +601,7 @@ export class HeightGraph {
                 .classed("active", false);
             select(".horizontalLine")
                 .classed("active", false);
-            this._markSegmentsOnMap(this._highlightedCoords);
+            this._routeSegmentsSelected(this._highlightedCoords);
         }
 
         const horizontalDrag = this._svg.selectAll(".horizontal-symbol").data(jsonTriangle).enter().append("path").
@@ -809,7 +815,7 @@ export class HeightGraph {
                 this._currentSelection = idx = 0
             }
             chooseSelection(idx)
-            this._markSegmentsOnMap([])
+            this._routeSegmentsSelected([])
             // todonow: should we keep or dismiss the rectangle selection?
             this._removeChart()
             this._createChart(idx)
@@ -821,7 +827,7 @@ export class HeightGraph {
                 this._currentSelection = idx = this._categories.length - 1
             }
             chooseSelection(idx)
-            this._markSegmentsOnMap([])
+            this._routeSegmentsSelected([])
             // todonow: should we keep or dismiss the rectangle selection?
             this._removeChart()
             this._createChart(idx)
@@ -929,7 +935,7 @@ export class HeightGraph {
      * Handles the mouseout event when the mouse leaves the background
      */
     _mouseoutHandler() {
-        this._showMapMarker(null);
+        this._pointSelected(null);
     }
 
     /**
@@ -955,7 +961,7 @@ export class HeightGraph {
             areaLength = this._categories[this._currentSelection].distances[areaIdx] - this._categories[this._currentSelection].distances[areaIdx - 1];
         }
         if (showMapMarker) {
-            this._showMapMarker(ll, alt, type);
+            this._pointSelected(ll, alt, type);
         }
         this._distTspan.text(" " + dist.toFixed(1) + ' km');
         this._altTspan.text(" " + alt + ' m');

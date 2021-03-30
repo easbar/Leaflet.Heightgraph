@@ -1,4 +1,4 @@
-import {MapboxHeightGraph} from "../src/MapboxHeightGraph";
+import {MapboxHeightGraph} from "./MapboxHeightGraph";
 
 document.querySelector('#data1').addEventListener('click', e => changeData(1));
 document.querySelector('#data2').addEventListener('click', e => changeData(2));

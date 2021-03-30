@@ -1,4 +1,4 @@
-import {createMapMarker, HeightGraph} from "./heightgraph";
+import {createMapMarker, HeightGraph} from "../src/heightgraph";
 import 'd3-selection-multi'
 
 export class MapboxHeightGraph {
@@ -14,9 +14,9 @@ export class MapboxHeightGraph {
         const self = this;
         const callbacks = {
             // todonow: this vs. self, same in leaflet version
-            _showMapMarker: self._showMapMarker.bind(this),
-            _fitMapBounds: self._fitMapBounds.bind(this),
-            _markSegmentsOnMap: self._markSegmentsOnMap.bind(this)
+            pointSelectedCallback: self._showMapMarker.bind(this),
+            areaSelectedCallback: self._fitMapBounds.bind(this),
+            routeSegmentsSelectedCallback: self._markSegmentsOnMap.bind(this)
         }
         this._heightgraph = new HeightGraph(this._container, this._options, callbacks);
         return this._container;
@@ -44,26 +44,18 @@ export class MapboxHeightGraph {
         });
     }
 
-    /**
-     * Creates a marker on the map while hovering
-     * @param {Object} ll: actual coordinates of the route
-     * @param {Number} elevation: elevation as float
-     * @param {string} type: type of element
-     * // todonow: duplicate docs (see leaflet version)
-     */
-    _showMapMarker(ll, elevation, description) {
+    _showMapMarker(point, elevation, description) {
         if (this._marker) {
             this._marker.remove();
             this._marker = undefined;
         }
-        if (ll) {
+        if (point) {
             this._marker = new mapboxgl.Marker({
                 element: createMapMarker(elevation, description),
                 anchor: 'bottom-left',
                 offset: new mapboxgl.Point(-5, 5)
             })
-                /// todonow: make ll independent of leaflet?
-                .setLngLat({lon: ll.lng, lat: ll.lat})
+                .setLngLat(point)
                 .addTo(this._map);
         }
     }
@@ -77,7 +69,6 @@ export class MapboxHeightGraph {
                 this._map.removeSource(id);
             return;
         }
-        // todonow: change format in core
         coords = coords.map(c => c.map(p => [p.lng, p.lat]));
         const data = {
             "type": "Feature",

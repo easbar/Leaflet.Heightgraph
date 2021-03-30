@@ -1,4 +1,4 @@
-import {LeafletHeightGraph} from "../src/LeafletHeightGraph";
+import {LeafletHeightGraph} from "./LeafletHeightGraph";
 
 document.querySelector('#data1').addEventListener('click', e => changeData(1));
 document.querySelector('#data2').addEventListener('click', e => changeData(2));

@@ -1,4 +1,4 @@
-import {createMapMarker, HeightGraph} from "./heightgraph";
+import {createMapMarker, HeightGraph} from "../src/heightgraph";
 
 export const LeafletHeightGraph = L.Control.extend({
     options: {
@@ -13,9 +13,9 @@ export const LeafletHeightGraph = L.Control.extend({
         L.DomEvent.disableClickPropagation(this._container);
         const self = this;
         const callbacks = {
-            _showMapMarker: self._showMapMarker.bind(this),
-            _fitMapBounds: self._fitMapBounds.bind(this),
-            _markSegmentsOnMap: self._markSegmentsOnMap.bind(this)
+            pointSelectedCallback: self._showMapMarker.bind(this),
+            areaSelectedCallback: self._fitMapBounds.bind(this),
+            routeSegmentsSelectedCallback: self._markSegmentsOnMap.bind(this)
         }
         this._heightgraph = new HeightGraph(this._container, this.options, callbacks);
         return this._container;
@@ -39,19 +39,13 @@ export const LeafletHeightGraph = L.Control.extend({
         bounds = L.latLngBounds(bounds.sw, bounds.ne);
         this._map.fitBounds(bounds);
     },
-    /**
-     * Creates a marker on the map while hovering
-     * @param {Object} ll: actual coordinates of the route
-     * @param {Number} elevation: height as float
-     * @param {string} type: type of element
-     */
-    _showMapMarker(ll, elevation, type) {
+    _showMapMarker(point, elevation, type) {
         if (this._marker) {
             this._marker.remove();
             this._marker = undefined;
         }
-        if (ll) {
-            this._marker = L.marker(ll, {
+        if (point) {
+            this._marker = L.marker(point, {
                 icon: L.divIcon({
                     className: 'height-graph-map-marker-div-icon',
                     html: createMapMarker(elevation, type),
