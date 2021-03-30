@@ -116,7 +116,7 @@ export class HeightGraph {
     setData(data, mappings, selection) {
         if (typeof selection !== 'undefined')
             this._currentSelection = selection;
-        if (this._currentSelection >= data.length)
+        if (typeof this._currentSelection === 'undefined' || this._currentSelection >= data.length)
             this._currentSelection = 0;
         this._mappings = mappings;
         this._routeSegmentsSelected([]);
