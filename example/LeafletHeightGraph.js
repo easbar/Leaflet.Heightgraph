@@ -29,7 +29,7 @@ export const LeafletHeightGraph = L.Control.extend({
      * add Data from geoJson and call all functions
      * @param {Object} data
      */
-    addData(data, mappings, selection) {
+    setData(data, mappings, selection) {
         this._heightgraph.setData(data, mappings, selection)
     },
     resize(size) {
