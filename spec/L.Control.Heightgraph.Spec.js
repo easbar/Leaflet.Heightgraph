@@ -112,7 +112,7 @@ describe('L.Control.Heightgraph', () => {
                 "summary": "surfaces"
             }
         }];
-        hg.addData(geojson );
+        hg.setData(geojson );
     });
     it('reads data of geojson correctly', () => {
         expect(hg._data).toEqual(geojson);

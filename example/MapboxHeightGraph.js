@@ -30,7 +30,7 @@ export class MapboxHeightGraph {
     }
 
     addData(data, mappings, selection) {
-        this._heightgraph.addData(data, mappings, selection);
+        this._heightgraph.setData(data, mappings, selection);
     }
 
     resize(size) {

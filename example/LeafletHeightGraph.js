@@ -30,7 +30,7 @@ export const LeafletHeightGraph = L.Control.extend({
      * @param {Object} data
      */
     addData(data, mappings, selection) {
-        this._heightgraph.addData(data, mappings, selection)
+        this._heightgraph.setData(data, mappings, selection)
     },
     resize(size) {
         this._heightgraph.resize(size);

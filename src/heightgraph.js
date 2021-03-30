@@ -110,19 +110,19 @@ export class HeightGraph {
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
 
         // Re-add the data to redraw the chart.
-        this.addData(this._data, this._mappings, this._currentSelection);
+        this.setData(this._data, this._mappings, this._currentSelection);
     }
 
-    addData(data, mappings, selection) {
+    setData(data, mappings, selection) {
+        if (typeof selection !== 'undefined')
+            this._currentSelection = selection;
+        if (this._currentSelection >= data.length)
+            this._currentSelection = 0;
         this._mappings = mappings;
-        this._currentSelection = selection;
         this._routeSegmentsSelected([]);
         if (this._svg !== undefined) {
             this._svg.selectAll("*")
                 .remove();
-        }
-        if (!data || typeof this._currentSelection === 'undefined' || this._currentSelection >= data.length) {
-            this._currentSelection = 0;
         }
         this._resetDrag(true);
 

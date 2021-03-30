@@ -56,10 +56,11 @@ The stylesheet can alternatively be imported in a style tag:
 ## Usage
 Initialize the heightgraph, add it to your Leaflet map object and add your
 Data to the heightgraph object.
+
 ```javascript
 let hg = L.control.heightgraph();
 hg.addTo(map);
-hg.addData(geojson);
+hg.setData(geojson);
 L.geoJson(geojson).addTo(map);
 ```
 
