@@ -29,8 +29,8 @@ export class MapboxHeightGraph {
         this._heightgraph = undefined;
     }
 
-    addData(data) {
-        this._heightgraph.addData(data);
+    addData(data, mappings, selection) {
+        this._heightgraph.addData(data, mappings, selection);
     }
 
     resize(size) {

@@ -27,7 +27,6 @@ const defaultOptions = {
     expand: true,
     expandControls: true,
     translation: {},
-    selectedAttributeIdx: 0,
 }
 
 /**
@@ -44,13 +43,11 @@ export class HeightGraph {
         this._margin = options.margins;
         this._width = options.width;
         this._height = options.height;
-        this._mappings = options.mappings;
         this._graphStyle = options.graphStyle || {}
         this._dragCache = {}
         this._xTicks = options.xTicks;
         this._yTicks = options.yTicks;
         this._translation = options.translation;
-        this._currentSelection = options.selectedAttributeIdx;
         this._expand = options.expand;
         this._expandControls = options.expandControls;
         this._expandCallback = options.expandCallback;
@@ -113,19 +110,18 @@ export class HeightGraph {
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
 
         // Re-add the data to redraw the chart.
-        this.addData(this._data);
+        this.addData(this._data, this._mappings, this._currentSelection);
     }
 
-    /**
-     * TODO: this should be refactored to avoid calling _addData on resize
-     */
-    addData(data) {
+    addData(data, mappings, selection) {
+        this._mappings = mappings;
+        this._currentSelection = selection;
         this._routeSegmentsSelected([]);
         if (this._svg !== undefined) {
             this._svg.selectAll("*")
                 .remove();
         }
-        if (!data || this._currentSelection >= data.length) {
+        if (!data || typeof this._currentSelection === 'undefined' || this._currentSelection >= data.length) {
             this._currentSelection = 0;
         }
         this._resetDrag(true);
