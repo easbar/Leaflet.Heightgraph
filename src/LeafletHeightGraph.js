@@ -1,4 +1,5 @@
-import {HeightGraph} from "./heightgraph";
+import {createMapMarker, HeightGraph} from "./heightgraph";
+
 export const LeafletHeightGraph = L.Control.extend({
     options: {
         position: 'bottomright'
@@ -45,11 +46,19 @@ export const LeafletHeightGraph = L.Control.extend({
      * @param {string} type: type of element
      */
     _showMapMarker(ll, elevation, type) {
-        this._heightgraph._removeRouteMarker();
+        if (this._marker) {
+            this._marker.remove();
+            this._marker = undefined;
+        }
         if (ll) {
-            const layerPoint = this._map.latLngToLayerPoint(ll)
-            const svg = document.querySelector(".leaflet-overlay-pane svg");
-            this._heightgraph._drawRouteMarker(svg, layerPoint, elevation, type);
+            this._marker = L.marker(ll, {
+                icon: L.divIcon({
+                    className: 'height-graph-map-marker-div-icon',
+                    html: createMapMarker(elevation, type),
+                    iconAnchor: [5, 80]
+                })
+            });
+            this._marker.addTo(this._map);
         }
     },
     /**

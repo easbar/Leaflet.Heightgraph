@@ -459,56 +459,6 @@ export class HeightGraph {
         }
     }
 
-    // todonow: make 'static'? or actually move this into leaflet?
-    _drawRouteMarker(svg, layerPoint, elevation, type) {
-        this._routeMarker = select(svg).append("g").attr('id', 'route-marker')
-        const labelBox = this._routeMarker.append("g")
-            .attr('class', 'height-focus label')
-            .style("display", "block");
-        const normalizedY = layerPoint.y - 75
-        this._routeMarker.append('svg:line')
-            .attr('class', 'height-focus line')
-            .attr("x1", layerPoint.x)
-            .attr("x2", layerPoint.x)
-            .attr("y1", layerPoint.y)
-            .attr("y2", normalizedY)
-            .style("display", "block");
-        const pointG = this._routeMarker.append("g")
-            .attr("class", "height-focus circle")
-            .attr("transform", "translate(" + layerPoint.x + "," + layerPoint.y + ")")
-            .style("display", "block");
-        pointG.append("svg:circle")
-            .attr("r", 5)
-            .attr("cx", 0)
-            .attr("cy", 0)
-            .attr("class", "height-focus circle-lower");
-        labelBox.append("rect")
-            .attr("x", layerPoint.x + 3)
-            .attr("y", normalizedY)
-            .attr("class", 'bBox');
-        labelBox.append("text")
-            .attr("x", layerPoint.x + 5)
-            .attr("y", normalizedY + 12)
-            .text(elevation + " m")
-            .attr("class", "tspan mouse-height-box-text");
-        labelBox.append("text")
-            .attr("x", layerPoint.x + 5)
-            .attr("y", normalizedY + 24)
-            .text(type)
-            .attr("class", "tspan mouse-height-box-text");
-        const maxWidth = this._dynamicBoxSize("text.tspan")[1]
-        // box size should change for profile none (no type)
-        const maxHeight = (type === "") ? 12 + 6 : 2 * 12 + 6
-        selectAll('.bBox')
-            .attr("width", maxWidth + 10)
-            .attr("height", maxHeight);
-    }
-
-    _removeRouteMarker() {
-        if (this._routeMarker)
-            this._routeMarker.remove();
-    }
-
     /**
      * Creates the elevation profile
      */
@@ -572,7 +522,7 @@ export class HeightGraph {
             .attr("class", "tspan");
         this._typeTspan = this._focusType.append('tspan')
             .attr("class", "tspan");
-        const height = this._dynamicBoxSize(".focusbox text")[0]
+        const height = selectAll(".focusbox text").size();
         selectAll('.focusbox rect')
             .attr("height", height * textDistance + (textDistance / 2))
             .attr("display", "block");
@@ -956,23 +906,6 @@ export class HeightGraph {
     }
 
     /**
-     * calculates the margins of boxes
-     * @param {String} className: name of the class
-     * @return {array} borders: number of text lines, widest range of text
-     */
-    _dynamicBoxSize(className) {
-        const cnt = selectAll(className).nodes().length
-        const widths = []
-        for (let i = 0; i < cnt; i++) {
-            widths.push(selectAll(className)
-                .nodes()[i].getBoundingClientRect()
-                .width);
-        }
-        const maxWidth = d3Max(widths)
-        return [cnt, maxWidth];
-    }
-
-    /**
      * Creates top border line on graph
      */
     _createBorderTopLine() {
@@ -1015,7 +948,7 @@ export class HeightGraph {
         let areaLength
         const alt = item.altitude, dist = item.position,
             ll = item.latlng, areaIdx = item.areaIdx, type = item.type
-        const boxWidth = this._dynamicBoxSize(".focusbox text")[1] + 10
+        const boxWidth = dynamicBoxSize(".focusbox text").width + 10
         if (areaIdx === 0) {
             areaLength = this._categories[this._currentSelection].distances[areaIdx];
         } else {
@@ -1126,3 +1059,79 @@ export class HeightGraph {
         return /Android|webOS|iPhone|iPad|Mac|Macintosh|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 }
+
+/**
+ * Creates an svg element displaying the given elevation and description
+ * that can be used as map marker
+ */
+export const createMapMarker = (elevation, description) => {
+    // we append the svg to body so we can calculate sizes, but later remove it again (not sure if this is really needed)
+    // otherwise we could just use d3.create('svg')
+    const res = select('body').append('svg')
+    const offset = {
+        x: 5,
+        y: 5
+    }
+    const fontSize = 12;
+    const height = 80;
+    // the base circle that should be located at the marker position
+    res.append('circle')
+        .attr('class', 'height-focus circle')
+        .attr('r', offset.x)
+        .attr('cx', offset.x)
+        .attr('cy', height - offset.y)
+        .style('display', 'block');
+    // vertical line / 'flagpole'
+    res.append('line')
+        .attr('class', 'height-focus line')
+        .attr('x1', offset.x)
+        .attr('x2', offset.x)
+        .attr('y1', 0)
+        .attr('y2', 80)
+        .style('display', 'block');
+
+    // content box / 'flag'
+    const labelBox = res.append('g')
+        .attr('class', 'height-focus label')
+        .style('display', 'block');
+    labelBox.append('rect')
+        .attr('x', offset.x + 3)
+        .attr('y', 0)
+        .attr('class', 'bBox');
+    labelBox.append('text')
+        .attr('x', offset.x + 5)
+        .attr('y', fontSize)
+        .text(elevation + ' m')
+        .attr('class', 'tspan mouse-height-box-text');
+    labelBox.append('text')
+        .attr('x', offset.x + 5)
+        .attr('y', 2*fontSize)
+        .text(description)
+        .attr('class', 'tspan mouse-height-box-text');
+
+    const textSize = dynamicBoxSize('text.tspan')
+    // flag height should be smaller change if description is empty
+    const flagHeight = (description === '') ? fontSize + 10 : 2 * fontSize + 10
+    selectAll('.bBox')
+        .attr('width', textSize.width + 10)
+        .attr('height', flagHeight);
+    res.attr('width', textSize.width + 40).attr('height', height);
+    res.remove();
+    return res.node();
+}
+
+/**
+ * calculates the maximum size of all boxes for the given class name
+ */
+const dynamicBoxSize = (className) => {
+    const widths = [];
+    const heights = [];
+    selectAll(className).nodes()
+        .map(s => s.getBBox())
+        .forEach(b => {
+            widths.push(b.width);
+            heights.push(b.height)
+        });
+    return {width: d3Max(widths), height: d3Max(heights)};
+}
+

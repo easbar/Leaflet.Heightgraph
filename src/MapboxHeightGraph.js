@@ -1,4 +1,5 @@
-import {HeightGraph} from "./heightgraph";
+import {createMapMarker, HeightGraph} from "./heightgraph";
+import 'd3-selection-multi'
 
 export class MapboxHeightGraph {
 
@@ -50,24 +51,19 @@ export class MapboxHeightGraph {
      * @param {string} type: type of element
      * // todonow: duplicate docs (see leaflet version)
      */
-    _showMapMarker(ll, elevation, type) {
-        if (this._popup) {
-            this._popup.remove();
-            // this._svg.remove();
+    _showMapMarker(ll, elevation, description) {
+        if (this._marker) {
+            this._marker.remove();
+            this._marker = undefined;
         }
         if (ll) {
-            // todonow: adjust and use drawRouteMarker method (draw popup using svg instead of using default popup?)
-            // maybe we need to use a Control? or maybe we do not need this anyway? the popup also works?
-            // this._svg = document.createElement('svg');
-            // this._heightgraph._drawRouteMarker(this._svg, {x: 0, y: 0}, elevation, type);
-            this._popup = new mapboxgl.Popup({
-                closeButton: false,
+            this._marker = new mapboxgl.Marker({
+                element: createMapMarker(elevation, description),
+                anchor: 'bottom-left',
+                offset: new mapboxgl.Point(-5, 5)
             })
                 /// todonow: make ll independent of leaflet?
                 .setLngLat({lon: ll.lng, lat: ll.lat})
-                // .setDOMContent(this._svg)
-                .setHTML(`<p>${elevation}m</p><p></p>${type}</p>`)
-                .setMaxWidth("300px")
                 .addTo(this._map);
         }
     }
