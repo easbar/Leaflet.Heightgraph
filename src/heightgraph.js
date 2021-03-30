@@ -37,7 +37,7 @@ const defaultOptions = {
  *   - routeSegmentsSelectedCallback: receives an array of points ([{lng, lat}])
  */
 export class HeightGraph {
-    constructor(container, options, callbacks) {
+    constructor(container, options = {}, callbacks = {}) {
         this._container = container;
         options = Object.assign(defaultOptions, options);
         this._margin = options.margins;
@@ -51,9 +51,9 @@ export class HeightGraph {
         this._expand = options.expand;
         this._expandControls = options.expandControls;
         this._expandCallback = options.expandCallback;
-        this._pointSelected = callbacks.pointSelectedCallback;
-        this._areaSelected = callbacks.areaSelectedCallback;
-        this._routeSegmentsSelected = callbacks.routeSegmentsSelectedCallback;
+        this._pointSelected = callbacks.pointSelectedCallback || Function();
+        this._areaSelected = callbacks.areaSelectedCallback || Function();
+        this._routeSegmentsSelected = callbacks.routeSegmentsSelectedCallback || Function();
         this._chooseSelectionCallback = options.chooseSelectionCallback;
 
         this._defaultTranslation = {
@@ -452,6 +452,10 @@ export class HeightGraph {
      * calculates minimum and maximum values for the elevation scale drawn with d3
      */
     _calculateElevationBounds() {
+        if (this._elevations.length === 0) {
+            this._elevationBounds = {min: 0, max: 0};
+            return;
+        }
         const max = d3Max(this._elevations)
         const min = d3Min(this._elevations)
         const range = max - min

@@ -8,7 +8,7 @@ document.querySelector('#data4').addEventListener('click', e => changeData(4));
 export const changeData = setNumber => {
     const dataSet = [geojson1, geojson2, geojson3, []][setNumber-1];
     drawGeoJson(dataSet);
-    hg.addData(dataSet);
+    hg.setData(dataSet);
     hg._fitMapBounds(hg._heightgraph._getBounds());
 }
 
@@ -44,7 +44,7 @@ const hg = new MapboxHeightGraph({
    expand: true
 });
 map.addControl(hg, 'bottom-right');
-hg.addData(geojson1)
+hg.setData(geojson1)
 
 const layers = [];
 const drawGeoJson = (geojson) => {

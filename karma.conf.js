@@ -8,11 +8,9 @@ module.exports = (config) => {
         basePath: "./",
         frameworks: ["jasmine", "esm"],
         files: [
-            "./node_modules/leaflet/dist/leaflet-src.js",
-            "./node_modules/leaflet/dist/leaflet.css",
-            { pattern: "./src/L.Control.Heightgraph.js", type: 'module' },
-            "./src/L.Control.Heightgraph.css",
-            { pattern: 'spec/**/*.Spec.js', type: 'module' }
+            { pattern: "./src/heightgraph.js", type: 'module' },
+            "./src/heightgraph.css",
+            { pattern: 'spec/**/*.spec.js', type: 'module' }
         ],
         plugins: [
             // load plugin
@@ -24,19 +22,8 @@ module.exports = (config) => {
         autoWatch: true,
         reporters: [
             "progress",
-            "kjhtml",
-            "coverage"
+            "kjhtml"
         ],
-        // TODO: coverage reports currently not working
-        coverageReporter: {
-            dir: "coverage/",
-            reporters: [
-                {type: "html", subdir: "html"},
-                {type: "lcovonly", subdir: "../coverage"},
-                {type: "json", subdir: "../coverage"},
-                {type: "text-summary"}
-            ],
-        },
         esm: {
             nodeResolve: true
         },

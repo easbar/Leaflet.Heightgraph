@@ -14,7 +14,7 @@ export const changeData = setNumber => {
         displayGroup.addLayer(newLayer)
         map.fitBounds(newBounds)
     }
-    hg.addData(dataSet)
+    hg.setData(dataSet)
 }
 const map = new L.Map('map')
 
@@ -52,7 +52,7 @@ const hg = new LeafletHeightGraph({
 
 hg.addTo(map)
 
-hg.addData(geojson1)
+hg.setData(geojson1)
 
 L.geoJson(geojson1)
     .addTo(displayGroup)
