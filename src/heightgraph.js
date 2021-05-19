@@ -935,6 +935,10 @@ export class HeightGraph {
      * Handles the mouseout event when the mouse leaves the background
      */
     _mouseoutHandler() {
+        for (let param of ['_focusLine', '_focus', '_pointG', '_mouseHeightFocus', '_mouseHeightFocusLabel'])
+            if (this[param]) {
+                this[param].style('display', 'none');
+            }
         this._pointSelected(null);
     }
 
