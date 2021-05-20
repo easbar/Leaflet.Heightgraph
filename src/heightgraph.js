@@ -124,7 +124,8 @@ export class HeightGraph {
             this._svg.selectAll("*")
                 .remove();
         }
-        this._resetDrag(true);
+        this._removeDragRectangle();
+        this._rectangle = null;
 
         this._data = data;
         this._prepareData();
@@ -156,20 +157,20 @@ export class HeightGraph {
             event.stopPropagation();
         }
         this._gotDragged = true;
-        this._drawDragRectangle();
+        if (this._dragStartCoords) {
+            const dragEndCoords = this._dragCurrentCoords = mouse(this._background.node())
+            const x1 = Math.min(this._dragStartCoords[0], dragEndCoords[0]),
+                x2 = Math.max(this._dragStartCoords[0], dragEndCoords[0])
+            this._drawDragRectangle(x1, x2);
+        }
     }
 
     /**
-     * Draws the currently dragged rectangle over the chart.
+     * Draws a rectangle between the given x-values over the chart.
      */
-    _drawDragRectangle() {
+    _drawDragRectangle(x1, x2) {
+        this._rectangle = [x1, x2]
         // todonow: sometimes (depending on which path detail we select) the rectangle is shown *behind* the graph?!
-        if (!this._dragStartCoords) {
-            return;
-        }
-        const dragEndCoords = this._dragCurrentCoords = this._dragCache.end = mouse(this._background.node())
-        const x1 = Math.min(this._dragStartCoords[0], dragEndCoords[0]),
-            x2 = Math.max(this._dragStartCoords[0], dragEndCoords[0])
         if (!this._dragRectangle && !this._dragRectangleG) {
             const g = select(this._container).select("svg").select("g")
             this._dragRectangleG = g.append("g");
@@ -187,39 +188,36 @@ export class HeightGraph {
         }
     }
 
-    /**
-     * Removes the drag rectangle
-     * @param {boolean} skipMapFitBounds - whether to zoom the map back to the total extent of the data
-     */
-    _resetDrag(skipMapFitBounds) {
+    _removeDragRectangle() {
         if (this._dragRectangleG) {
             this._dragRectangleG.remove();
             this._dragRectangleG = null;
             this._dragRectangle = null;
-
-            if (skipMapFitBounds !== true) {
-                // potential performance improvement:
-                // we could cache the full extend when addData() is called
-                let bounds = this._getBounds();
-                if (bounds) this._areaSelected(bounds);
-            }
         }
     }
 
-    _getBounds() {
+    getBounds() {
         return this._calculateFullExtent(this._areasFlattended);
     }
 
-    /**
-     * Handles end of drag operations. Zooms the map to the selected items extent.
-     */
     _mouseUpHandler() {
-        if (!this._dragStartCoords || !this._gotDragged) {
-            this._dragStartCoords = null;
-            this._gotDragged = false;
-            this._resetDrag(false);
+        if (this._arrowClick) {
+            this._arrowClick = false;
             return;
         }
+        if (!this._dragStartCoords || !this._gotDragged) {
+            // this was just a click on the graph
+            this._dragStartCoords = null;
+            this._gotDragged = false;
+            // if there was a rectangle we remove it now
+            if (this._dragRectangleG) {
+                this._removeDragRectangle()
+                this._rectangle = null;
+                this._areaSelected(null)
+            }
+            return;
+        }
+        // this was a drag
         const item1 = this._findItemForX(this._dragStartCoords[0]),
             item2 = this._findItemForX(this._dragCurrentCoords[0])
         this._fitSection(item1, item2);
@@ -231,7 +229,7 @@ export class HeightGraph {
         event.preventDefault();
         event.stopPropagation();
         this._gotDragged = false;
-        this._dragStartCoords = this._dragCache.start = mouse(this._background.node());
+        this._dragStartCoords = mouse(this._background.node());
     }
 
     /*
@@ -774,12 +772,9 @@ export class HeightGraph {
             attr("transform", d => "translate(" + d.x + "," + d.y + ") rotate(" + d.angle + ")").
             attr("id", d => d.id).style("fill", d => d.color).
             on("mousedown", d => {
+                this._arrowClick = true
                 if (d.id === "rightArrowSelection") arrowRight()
                 if (d.id === "leftArrowSelection") arrowLeft()
-                // fake a drag event from cache values to keep selection
-                this._gotDragged = true
-                this._dragStartCoords = this._dragCache.start
-                this._dragCurrentCoords = this._dragCache.end
             })
         }
         const chooseSelection = (id) => {
@@ -815,10 +810,13 @@ export class HeightGraph {
                 this._currentSelection = idx = 0
             }
             chooseSelection(idx)
+            // todo: no real reason to clear this, but if we keep it we should make sure the horizontal line is not removed
             this._routeSegmentsSelected([])
-            // todonow: should we keep or dismiss the rectangle selection?
             this._removeChart()
             this._createChart(idx)
+            this._removeDragRectangle()
+            if (this._rectangle)
+                this._drawDragRectangle(this._rectangle[0], this._rectangle[1])
         }
 
         let arrowLeft = () => {
@@ -828,9 +826,11 @@ export class HeightGraph {
             }
             chooseSelection(idx)
             this._routeSegmentsSelected([])
-            // todonow: should we keep or dismiss the rectangle selection?
             this._removeChart()
             this._createChart(idx)
+            this._removeDragRectangle()
+            if (this._rectangle)
+                this._drawDragRectangle(this._rectangle[0], this._rectangle[1])
         }
     }
 

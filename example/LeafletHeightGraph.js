@@ -36,6 +36,8 @@ export const LeafletHeightGraph = L.Control.extend({
         this._heightgraph.resize(size);
     },
     _fitMapBounds(bounds) {
+        if (bounds === null)
+            bounds = this._heightgraph.getBounds()
         bounds = L.latLngBounds(bounds.sw, bounds.ne);
         this._map.fitBounds(bounds);
     },

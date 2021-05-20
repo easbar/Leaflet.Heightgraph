@@ -38,6 +38,8 @@ export class MapboxHeightGraph {
     }
 
     _fitMapBounds(bounds) {
+        if (bounds === null)
+            bounds = this._heightgraph.getBounds()
         bounds = new mapboxgl.LngLatBounds(bounds.sw, bounds.ne);
         this._map.fitBounds(bounds, {
             animate: false
