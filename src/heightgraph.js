@@ -73,7 +73,7 @@ export class HeightGraph {
             schemePaired
         ]
 
-        this._containerDragEndListener = () => this._dragEndHandler();
+        this._containerMouseUpHandler = () => this._mouseUpHandler();
 
         this._svgWidth = this._width - this._margin.left - this._margin.right;
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
@@ -213,7 +213,7 @@ export class HeightGraph {
     /**
      * Handles end of drag operations. Zooms the map to the selected items extent.
      */
-    _dragEndHandler() {
+    _mouseUpHandler() {
         if (!this._dragStartCoords || !this._gotDragged) {
             this._dragStartCoords = null;
             this._gotDragged = false;
@@ -662,7 +662,7 @@ export class HeightGraph {
                 .on("touchstart.drag", () => this._dragStartHandler())
                 .on("touchstart.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx));
             // todonow: not working on mobile??
-            this._container.addEventListener('touchend', this._containerDragEndListener);
+            this._container.addEventListener('touchend', this._containerMouseUpHandler);
         } else {
             background.on("mousemove.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx))
                 .on("mouseout.focusbox", () => this._mouseoutHandler())
@@ -670,7 +670,7 @@ export class HeightGraph {
                 .on("mousemove.drag", () => this._dragHandler());
             // we need the _containerDragEndlistener reference to make sure we do not add multiple listeners
             // when we call appendBackground with different this contexts
-            this._container.addEventListener('mouseup', this._containerDragEndListener);
+            this._container.addEventListener('mouseup', this._containerMouseUpHandler);
         }
     }
 
