@@ -1,5 +1,4 @@
 import { select, selectAll, mouse } from 'd3-selection'
-import 'd3-selection-multi'
 import { scaleOrdinal, scaleLinear } from 'd3-scale'
 import { min as d3Min, max as d3Max, bisector } from 'd3-array'
 import { drag } from 'd3-drag'
@@ -704,7 +703,7 @@ export class HeightGraph {
      */
     _appendAreas(block, idx, eleIdx) {
         const c = this._categories[idx].attributes[eleIdx].color
-        const area = this._area = d3Area().x(d => {
+        this._area = d3Area().x(d => {
             const xDiagonalCoordinate = this._x(d.position)
             d.xDiagonalCoordinate = xDiagonalCoordinate
             return xDiagonalCoordinate
@@ -714,7 +713,10 @@ export class HeightGraph {
         this._areapath.datum(block)
             .attr("d", this._area)
             .attr("stroke", c)
-            .styles(this._graphStyle)
+        Object.entries(this._graphStyle).forEach(([prop, val]) => {
+            this._areapath.style(prop, val)
+        })
+        this._areapath
             .style("fill", c)
             .style("pointer-events", "none");
     }
@@ -868,7 +870,8 @@ export class HeightGraph {
             .attr('width', 6)
             .attr('height', 6);
         if (Object.keys(this._graphStyle).length !== 0) {
-            legendRect.styles(this._graphStyle)
+            Object.entries(this._graphStyle).forEach(([prop, val]) => legendRect.style(prop, val))
+            legendRect
                 .style('stroke', (d, i) => d.color)
                 .style('fill', (d, i) => d.color);
         } else {

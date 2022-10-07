@@ -1,5 +1,4 @@
 import {createMapMarker, HeightGraph} from "../src/heightgraph";
-import 'd3-selection-multi'
 
 export class MapboxHeightGraph {
 
