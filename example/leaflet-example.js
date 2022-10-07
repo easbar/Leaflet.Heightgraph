@@ -6,7 +6,7 @@ document.querySelector('#data3').addEventListener('click', e => changeData(3))
 document.querySelector('#data4').addEventListener('click', e => changeData(4));
 
 export const changeData = setNumber => {
-    let dataSet = setNumber === '1' ? geojson1 : setNumber === '2' ? geojson2 : setNumber === '3' ? geojson3 : []
+    let dataSet = setNumber === 1 ? geojson1 : setNumber === 2 ? geojson2 : setNumber === 3 ? geojson3 : []
     displayGroup.clearLayers()
     if (dataSet.length !== 0) {
         let newLayer = L.geoJson(dataSet)

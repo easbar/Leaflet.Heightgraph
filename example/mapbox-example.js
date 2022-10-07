@@ -9,7 +9,7 @@ export const changeData = setNumber => {
     const dataSet = [geojson1, geojson2, geojson3, []][setNumber-1];
     drawGeoJson(dataSet);
     hg.setData(dataSet);
-    hg._fitMapBounds(hg._heightgraph._getBounds());
+    hg._fitMapBounds(hg._heightgraph.getBounds());
 }
 
 const map = new mapboxgl.Map({
