@@ -1,4 +1,4 @@
-import { select, selectAll, mouse } from 'd3-selection'
+import { select, selectAll, pointer } from 'd3-selection'
 import { scaleOrdinal, scaleLinear } from 'd3-scale'
 import { min as d3Min, max as d3Max, bisector } from 'd3-array'
 import { drag } from 'd3-drag'
@@ -149,7 +149,7 @@ export class HeightGraph {
         });
     }
 
-    _dragHandler() {
+    _dragHandler(event) {
         //we don´t want map events to occur here
         if (typeof event !== 'undefined') {
             event.preventDefault();
@@ -157,7 +157,7 @@ export class HeightGraph {
         }
         this._gotDragged = true;
         if (this._dragStartCoords) {
-            const dragEndCoords = this._dragCurrentCoords = mouse(this._background.node())
+            const dragEndCoords = this._dragCurrentCoords = pointer(event, this._background.node())
             const x1 = Math.min(this._dragStartCoords[0], dragEndCoords[0]),
                 x2 = Math.max(this._dragStartCoords[0], dragEndCoords[0])
             this._drawDragRectangle(x1, x2);
@@ -224,11 +224,11 @@ export class HeightGraph {
         this._gotDragged = false;
     }
 
-    _dragStartHandler() {
+    _dragStartHandler(event) {
         event.preventDefault();
         event.stopPropagation();
         this._gotDragged = false;
-        this._dragStartCoords = mouse(this._background.node());
+        this._dragStartCoords = pointer(event, this._background.node());
     }
 
     /*
@@ -572,24 +572,23 @@ export class HeightGraph {
             select(".horizontalLine").raise().classed("active", true)
         }
 
-        const dragged = (element) => {
+        const dragged = (element, event) => {
             const maxY = this._svgHeight
-            let eventY = mouse(this._container)[1] - 10
+            const eventY = pointer(event, this._container)[1] - 10
+            const newY = Math.max(0, Math.min(eventY, maxY));
             select(element)
-                .attr("transform", d => "translate(" + d.x + "," + (eventY < 0 ? 0
-                    : eventY > maxY ? maxY
-                        : eventY) + ") rotate(" + d.angle + ")");
+                .attr("transform", d => "translate(" + d.x + "," + newY + ") rotate(" + d.angle + ")");
             select(".horizontalLine")
-                .attr("y1", (eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)))
-                .attr("y2", (eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)));
+                .attr("y1", newY)
+                .attr("y2", newY);
             if (eventY >= maxY) {
                 this._highlightedCoords = [];
             } else {
                 this._highlightedCoords = this._findCoordsForY(eventY);
             }
             select(".horizontalLineText")
-                .attr("y", (eventY <= 10 ? 0 : (eventY > maxY ? maxY - 10 : eventY - 10)))
-                .text(format(".0f")(this._y.invert((eventY < 0 ? 0 : (eventY > maxY ? maxY : eventY)))) + " m");
+                .attr("y", (newY < 10 ? 0 : newY - 10))
+                .text(format(".0f")(this._y.invert(newY)) + " m");
             this._routeSegmentsSelected(this._highlightedCoords);
         }
 
@@ -608,9 +607,9 @@ export class HeightGraph {
             .attr("id", d => d.id)
             .style("fill", d => d.color)
             .call(drag()
-                .on("start", function(d) { dragstart(this); })
-                .on("drag", function(d) { dragged(this); })
-                .on("end", function(d) { dragend(this); })
+                .on("start", function(event, d) { dragstart(this); })
+                .on("drag", function(event, d) { dragged(this, event); })
+                .on("end", function(event, d) { dragend(this); })
             )
     }
 
@@ -652,19 +651,21 @@ export class HeightGraph {
             .style("fill", "none")
             .style("stroke", "none")
             .style("pointer-events", "all")
-            .on("mousemove.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx))
-            .on("mouseout.focusbox", () => this._mouseoutHandler())
+            .on("mousemove.focusbox", (event, d) => this._mousemoveHandler(event))
+            .on("mouseout.focusbox", (event, d) => this._mouseoutHandler())
         if (this._isMobile()) {
-            background.on("touchstart.drag", () => this._dragHandler())
-                .on("touchstart.drag", () => this._dragStartHandler())
-                .on("touchstart.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx));
+            background
+                .on("touchstart.drag", (event, d) => this._dragHandler(event))
+                .on("touchstart.drag", (event, d) => this._dragStartHandler(event))
+                .on("touchstart.focusbox", (event, d) => this._mousemoveHandler(event, d));
             // todonow: not working on mobile??
             this._container.addEventListener('touchend', this._containerMouseUpHandler);
         } else {
-            background.on("mousemove.focusbox", (d, i, ctx) => this._mousemoveHandler(d, i, ctx))
-                .on("mouseout.focusbox", () => this._mouseoutHandler())
-                .on("mousedown.drag", () => this._dragStartHandler())
-                .on("mousemove.drag", () => this._dragHandler());
+            background
+                .on("mousemove.focusbox", (event, d) => this._mousemoveHandler(event))
+                .on("mouseout.focusbox", (event, d) => this._mouseoutHandler())
+                .on("mousedown.drag", (event, d) => this._dragStartHandler(event))
+                .on("mousemove.drag", (event, d) => this._dragHandler(event));
             // we need the _containerDragEndlistener reference to make sure we do not add multiple listeners
             // when we call appendBackground with different this contexts
             this._container.addEventListener('mouseup', this._containerMouseUpHandler);
@@ -773,7 +774,7 @@ export class HeightGraph {
             attr("d", symbol().type(d => d.type)).
             attr("transform", d => "translate(" + d.x + "," + d.y + ") rotate(" + d.angle + ")").
             attr("id", d => d.id).style("fill", d => d.color).
-            on("mousedown", d => {
+            on("mousedown", (event, d) => {
                 this._arrowClick = true
                 if (d.id === "rightArrowSelection") arrowRight()
                 if (d.id === "leftArrowSelection") arrowLeft()
@@ -948,8 +949,8 @@ export class HeightGraph {
     /**
      * Handles the mouseover the chart and displays distance and altitude level
      */
-    _mousemoveHandler(d, i, ctx) {
-        const coords = mouse(this._svg.node())
+    _mousemoveHandler(event) {
+        const coords = pointer(event, this._svg.node())
         const item = this._areasFlattended[this._findItemForX(coords[0])];
         if (item) this._internalMousemoveHandler(item);
     }
