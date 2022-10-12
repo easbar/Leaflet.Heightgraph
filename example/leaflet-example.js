@@ -60,3 +60,7 @@ L.geoJson(geojson1)
 map.addLayer(openstreetmap).fitBounds(bounds)
 
 hg.resize({width:1000,height:300})
+
+document.querySelector('#toggle_units').addEventListener('click', e => {
+    hg.setImperial(!hg.isImperial())
+})

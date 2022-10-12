@@ -34,6 +34,16 @@ export class MapboxHeightGraph {
 
     resize(size) {
         this._heightgraph.resize(size);
+        this._heightgraph.redraw()
+    }
+
+    setImperial(imperial) {
+        this._heightgraph.setImperial(imperial)
+        this._heightgraph.redraw()
+    }
+
+    isImperial() {
+        return this._heightgraph.isImperial()
     }
 
     _fitMapBounds(bounds) {
@@ -52,7 +62,7 @@ export class MapboxHeightGraph {
         }
         if (point) {
             this._marker = new mapboxgl.Marker({
-                element: createMapMarker(elevation, description),
+                element: createMapMarker(elevation, description, this._heightgraph.isImperial()),
                 anchor: 'bottom-left',
                 offset: new mapboxgl.Point(-5, 5)
             })

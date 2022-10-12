@@ -35,6 +35,13 @@ export const LeafletHeightGraph = L.Control.extend({
     resize(size) {
         this._heightgraph.resize(size);
     },
+    setImperial(imperial) {
+        this._heightgraph.setImperial(imperial)
+        this._heightgraph.redraw()
+    },
+    isImperial() {
+        return this._heightgraph.isImperial()
+    },
     _fitMapBounds(bounds) {
         if (bounds === null)
             bounds = this._heightgraph.getBounds()
@@ -50,7 +57,7 @@ export const LeafletHeightGraph = L.Control.extend({
             this._marker = L.marker(point, {
                 icon: L.divIcon({
                     className: 'height-graph-map-marker-div-icon',
-                    html: createMapMarker(elevation, type),
+                    html: createMapMarker(elevation, type, this._heightgraph.isImperial()),
                     iconAnchor: [5, 80]
                 })
             });

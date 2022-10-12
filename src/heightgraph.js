@@ -23,6 +23,7 @@ const defaultOptions = {
         bottom: 55,
         left: 50
     },
+    imperial: false,
     expand: true,
     expandControls: true,
     translation: {},
@@ -43,10 +44,10 @@ export class HeightGraph {
         this._width = options.width;
         this._height = options.height;
         this._graphStyle = options.graphStyle || {}
-        this._dragCache = {}
         this._xTicks = options.xTicks;
         this._yTicks = options.yTicks;
         this._translation = options.translation;
+        this._imperial = options.imperial;
         this._expand = options.expand;
         this._expandControls = options.expandControls;
         this._expandCallback = options.expandCallback;
@@ -109,6 +110,10 @@ export class HeightGraph {
         this._svgHeight = this._height - this._margin.top - this._margin.bottom;
 
         // Re-add the data to redraw the chart.
+        this.redraw()
+    }
+
+    redraw() {
         this.setData(this._data, this._mappings, this._currentSelection);
     }
 
@@ -197,6 +202,14 @@ export class HeightGraph {
 
     getBounds() {
         return this._calculateFullExtent(this._areasFlattended);
+    }
+
+    isImperial() {
+        return this._imperial;
+    }
+
+    setImperial(imperial) {
+        this._imperial = imperial;
     }
 
     _mouseUpHandler() {
@@ -588,7 +601,7 @@ export class HeightGraph {
             }
             select(".horizontalLineText")
                 .attr("y", (newY < 10 ? 0 : newY - 10))
-                .text(format(".0f")(this._y.invert(newY)) + " m");
+                .text(elevationToString(this._y.invert(newY), this._imperial, true));
             this._routeSegmentsSelected(this._highlightedCoords);
         }
 
@@ -617,7 +630,6 @@ export class HeightGraph {
      * Defines the ranges and format of x- and y- scales and appends them
      */
     _appendScales() {
-        const shortDist = Boolean(this._totalDistance <= 10)
         this._x = scaleLinear()
             .range([0, this._svgWidth]);
         this._y = scaleLinear()
@@ -626,15 +638,11 @@ export class HeightGraph {
         this._y.domain([this._elevationBounds.min, this._elevationBounds.max]);
         this._xAxis = axisBottom()
             .scale(this._x)
-        if (shortDist === true) {
-            this._xAxis.tickFormat(d => format(".2f")(d) + " km");
-        } else {
-            this._xAxis.tickFormat(d => format(".0f")(d) + " km");
-        }
+        this._xAxis.tickFormat(d => distanceToString(d * 1000, this._totalDistance, this._imperial, false))
         this._xAxis.ticks(this._xTicks ? Math.pow(2, this._xTicks) : Math.round(this._svgWidth / 75), "s");
         this._yAxis = axisLeft()
             .scale(this._y)
-            .tickFormat(d => d + " m");
+            .tickFormat(d => elevationToString(d, this._imperial, false));
         this._yAxis.ticks(this._yTicks ? Math.pow(2, this._yTicks) : Math.round(this._svgHeight / 30), "s");
     }
 
@@ -971,9 +979,9 @@ export class HeightGraph {
         if (showMapMarker) {
             this._pointSelected(ll, alt, type);
         }
-        this._distTspan.text(" " + dist.toFixed(1) + ' km');
-        this._altTspan.text(" " + alt + ' m');
-        this._areaTspan.text(" " + areaLength.toFixed(1) + ' km');
+        this._distTspan.text(" " + distanceToString(dist * 1000, this._totalDistance, this._imperial, true));
+        this._altTspan.text(" " + elevationToString(alt, this._imperial, true));
+        this._areaTspan.text(" " + distanceToString(areaLength * 1000, this._totalDistance, this._imperial, true));
         this._typeTspan.text(" " + type);
         this._focusRect.attr("width", boxWidth);
         this._focusLine.style("display", "block")
@@ -1078,7 +1086,7 @@ export class HeightGraph {
  * Creates an svg element displaying the given elevation and description
  * that can be used as map marker
  */
-export const createMapMarker = (elevation, description) => {
+export const createMapMarker = (elevation, description, imperial) => {
     // we append the svg to body so we can calculate sizes, but later remove it again (not sure if this is really needed)
     // otherwise we could just use d3.create('svg')
     const res = select('body').append('svg')
@@ -1115,7 +1123,7 @@ export const createMapMarker = (elevation, description) => {
     labelBox.append('text')
         .attr('x', offset.x + 5)
         .attr('y', fontSize)
-        .text(elevation + ' m')
+        .text(elevationToString(elevation, imperial, true))
         .attr('class', 'tspan mouse-height-box-text');
     labelBox.append('text')
         .attr('x', offset.x + 5)
@@ -1132,6 +1140,34 @@ export const createMapMarker = (elevation, description) => {
     res.attr('width', textSize.width + 40).attr('height', height);
     res.remove();
     return res.node();
+}
+
+function distanceToString(meters, totalKm, imperial, precise) {
+    if (imperial) {
+        if (metersToMiles(meters) < 0.1) return metersToFeet(meters).toFixed(precise ? 1 : 0) + " ft"
+        else if (metersToMiles(totalKm * 1000) < 6) return metersToMiles(meters).toFixed(precise ? 3 : 1) + " mi"
+        else return metersToMiles(meters).toFixed(precise ? 3 : 0) + " mi"
+    } else {
+        if (totalKm < 1) return meters.toFixed(precise ? 2 : 0) + " m";
+        else if (totalKm < 10) return (meters / 1000).toFixed(precise ? 3 : 1) + " km"
+        else return (meters / 1000).toFixed(precise ? 3 : 0) + " km"
+    }
+}
+
+function elevationToString(meters, imperial, precise) {
+    if (imperial) {
+        return metersToFeet(meters).toFixed(precise ? 1 : 0) + " ft";
+    } else {
+        return meters.toFixed(precise ? 2 : 0) + " m";
+    }
+}
+
+function metersToMiles(meters) {
+    return meters / 1609.34
+}
+
+function metersToFeet(meters) {
+    return meters / 0.3048
 }
 
 /**
