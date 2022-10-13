@@ -1144,8 +1144,8 @@ export const createMapMarker = (elevation, description, imperial) => {
 
 function distanceToString(meters, totalKm, imperial, precise) {
     if (imperial) {
-        if (metersToMiles(meters) < 0.1) return metersToFeet(meters).toFixed(precise ? 1 : 0) + " ft"
-        else if (metersToMiles(totalKm * 1000) < 6) return metersToMiles(meters).toFixed(precise ? 3 : 1) + " mi"
+        if (metersToMiles(totalKm * 1000) < 0.1) return metersToFeet(meters).toFixed(precise ? 1 : 0) + " ft"
+        else if (metersToMiles(totalKm * 1000) < 10) return metersToMiles(meters).toFixed(precise ? 3 : 1) + " mi"
         else return metersToMiles(meters).toFixed(precise ? 3 : 0) + " mi"
     } else {
         if (totalKm < 1) return meters.toFixed(precise ? 2 : 0) + " m";
