@@ -94,32 +94,40 @@ export class HeightGraph {
             .attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")")
         if (this._expand) this._expandContainer();
 
-        this._legend = document.createElement('div');
-        this._legend.id = 'heightgraph-legend';
-        this._legend.innerHTML = this._getTranslation("legend");
-        this._container.append(this._legend);
+        // legend
+        const legendMainDiv = document.createElement('div');
+        legendMainDiv.id = 'heightgraph-legend';
+        this._legend = document.createElement('ul');
+        legendMainDiv.append(this._legend)
+        const legendText = document.createElement('span');
+        legendText.id = 'heightgraph-legend-text';
+        legendText.innerHTML = this._getTranslation("legend");
+        legendMainDiv.append(legendText)
+        legendText.addEventListener("click", e => {
+            this._legend.classList.toggle("heightgraph-show");
+        });
+        this._container.append(legendMainDiv);
 
-        const mainSelector = document.createElement('div');
-        mainSelector.id = 'heightgraph-selector'
-
-        this._container.append(mainSelector);
+        // switch between categories
+        const selectorMain = document.createElement('div');
+        selectorMain.id = 'heightgraph-selector'
+        this._container.append(selectorMain);
         this._optionsSelect = document.createElement('ul');
-        mainSelector.append(this._optionsSelect);
+        selectorMain.append(this._optionsSelect);
         this._optionsSelectInput = document.createElement('input');
         this._optionsSelectInput.readOnly = true
-        mainSelector.append(this._optionsSelectInput);
+        selectorMain.append(this._optionsSelectInput);
         const arrowIconForInput = document.createElement('span');
         arrowIconForInput.innerHTML = '&#9662;'
         arrowIconForInput.id = 'arrow-icon-for-input'
-        mainSelector.append(arrowIconForInput);
-
+        selectorMain.append(arrowIconForInput);
         this._optionsSelectInput.addEventListener("click", e => {
-            this._optionsSelect.classList.toggle("heightgraph-options-show");
+            this._optionsSelect.classList.toggle("heightgraph-show");
         });
 
         this._optionsSelect.addEventListener('click', e => {
             this._optionsSelectInput.value = e.target.textContent;
-            this._optionsSelect.classList.remove("heightgraph-options-show");
+            this._optionsSelect.classList.remove("heightgraph-show");
 
             const idx = this._currentSelection = e.target.getAttribute('value');
             if (this._categories.length === 0) return;
@@ -800,78 +808,24 @@ export class HeightGraph {
      * Creates and appends legend to chart
      */
     _createLegend() {
-        const data = []
-        if (this._categories.length > 0) {
+        // remove previous data
+        while(this._legend.firstChild) this._legend.removeChild(this._legend.lastChild);
+
+        if (this._categories.length > 0)
             for (let item in this._categories[this._currentSelection].legend) {
-                data.push(this._categories[this._currentSelection].legend[item]);
+                const data = this._categories[this._currentSelection].legend[item]
+                const el = document.createElement('li')
+                this._legend.append(el)
+
+                const iconEl = document.createElement('span')
+                iconEl.style.backgroundColor = data.color
+                iconEl.id = 'heightgraph-legend-icon'
+                el.append(iconEl)
+
+                const textEl = document.createElement('span')
+                textEl.innerHTML = data.text; // data.type
+                el.append(textEl)
             }
-        }
-        // const height = this._height - this._margin.bottom
-        // const verticalItemPosition = height + this._margin.bottom / 2
-        // const leg = [
-        //     {
-        //         "text": this._getTranslation("legend")
-        //     }
-        // ]
-        // const legendRectSize = 7
-        // const legendSpacing = 7
-        // const legend = this._svg.selectAll(".hlegend-hover").data(data).enter().append("g").attr("class", "legend").
-        // style("display", "none").attr("transform", (d, i) => {
-        //     const height = legendRectSize + legendSpacing
-        //     const offset = height * 2
-        //     const horizontal = legendRectSize - 15
-        //     const vertical = i * height - offset
-        //     return "translate(" + horizontal + "," + vertical + ")"
-        // })
-        // const legendRect = legend.append('rect')
-        //     .attr('class', 'legend-rect')
-        //     .attr('x', 15)
-        //     .attr('y', 6 * 6)
-        //     .attr('width', 6)
-        //     .attr('height', 6);
-        // if (Object.keys(this._graphStyle).length !== 0) {
-        //     Object.entries(this._graphStyle).forEach(([prop, val]) => legendRect.style(prop, val))
-        //     legendRect
-        //         .style('stroke', (d, i) => d.color)
-        //         .style('fill', (d, i) => d.color);
-        // } else {
-        //     legendRect.style('stroke', 'black')
-        //         .style('fill', (d, i) => d.color);
-        // }
-        // legend.append('text')
-        //     .attr('class', 'legend-text')
-        //     .attr('x', 30)
-        //     .attr('y', 6 * 7)
-        //     .text((d, i) => {
-        //         const textProp = d.text
-        //         this._boxBoundY = (height - (2 * height / 3) + 7) * i;
-        //         return textProp;
-        //     });
-        // let legendHover = this._svg.selectAll('.legend-hover')
-        //     .data(leg)
-        //     .enter()
-        //     .append('g')
-        //     .attr('class', 'legend-hover');
-        // this._showLegend = false
-        // legendHover.append('text')
-        //     .attr('x', 15)
-        //     .attr('y', verticalItemPosition)
-        //     .attr('text-anchor', "start")
-        //     .text((d, i) => d.text)
-        //     .on('mouseover', () => {
-        //         selectAll('.legend')
-        //             .style("display", "block");
-        //     })
-        //     .on('mouseleave', () => {
-        //         if (!this._showLegend) {
-        //             selectAll('.legend')
-        //                 .style("display", "none");
-        //         }
-        //     })
-        //     .on('click', () => {
-        //         this._showLegend = !this._showLegend
-        //     })
-        // ;
     }
 
     /**

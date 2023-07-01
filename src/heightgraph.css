@@ -143,15 +143,39 @@
     cursor: move;
 }
 
-.heightgraph-options-show {
+.heightgraph-show {
     display: block !important;
 }
 
 #heightgraph-legend {
     position: absolute;
+
+    cursor: pointer;
     right: 15px;
     bottom: 10px;
     font-size: 14px;
+}
+
+#heightgraph-legend-text {
+    float: right;
+}
+
+#heightgraph-legend-icon {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+}
+
+#heightgraph-legend ul {
+    display: none;
+
+    margin: 0 5px;
+    padding: 0 5px;
+    list-style: none;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
 }
 
 #heightgraph-selector {
