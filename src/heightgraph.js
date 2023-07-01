@@ -92,35 +92,34 @@ export class HeightGraph {
             .attr("width", this._width)
             .attr("height", this._height).append("g")
             .attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")")
-        if (this._expand) this._expandContainer();
 
         // legend
-        const legendMainDiv = document.createElement('div');
-        legendMainDiv.id = 'heightgraph-legend';
+        this._legendMain = document.createElement('div');
+        this._legendMain.id = 'heightgraph-legend';
         this._legend = document.createElement('ul');
-        legendMainDiv.append(this._legend)
+        this._legendMain.append(this._legend)
         const legendText = document.createElement('span');
         legendText.id = 'heightgraph-legend-text';
         legendText.innerHTML = this._getTranslation("legend");
-        legendMainDiv.append(legendText)
+        this._legendMain.append(legendText)
         legendText.addEventListener("click", e => {
             this._legend.classList.toggle("heightgraph-show");
         });
-        this._container.append(legendMainDiv);
+        this._container.append(this._legendMain);
 
         // switch between categories
-        const selectorMain = document.createElement('div');
-        selectorMain.id = 'heightgraph-selector'
-        this._container.append(selectorMain);
+        this._selectorMain = document.createElement('div');
+        this._selectorMain.id = 'heightgraph-selector'
+        this._container.append(this._selectorMain);
         this._optionsSelect = document.createElement('ul');
-        selectorMain.append(this._optionsSelect);
+        this._selectorMain.append(this._optionsSelect);
         this._optionsSelectInput = document.createElement('input');
         this._optionsSelectInput.readOnly = true
-        selectorMain.append(this._optionsSelectInput);
+        this._selectorMain.append(this._optionsSelectInput);
         const arrowIconForInput = document.createElement('span');
         arrowIconForInput.innerHTML = '&#9662;'
         arrowIconForInput.id = 'arrow-icon-for-input'
-        selectorMain.append(arrowIconForInput);
+        this._selectorMain.append(arrowIconForInput);
         this._optionsSelectInput.addEventListener("click", e => {
             this._optionsSelect.classList.toggle("heightgraph-show");
         });
@@ -143,6 +142,8 @@ export class HeightGraph {
             if (this._rectangle)
                 this._drawDragRectangle(this._rectangle[0], this._rectangle[1]);
         })
+
+        if (this._expand) this._expandContainer();
     }
 
     resize(size) {
@@ -353,21 +354,17 @@ export class HeightGraph {
             this._showState = false;
         }
         if (!this._showState) {
-            select(this._button)
-                .style("display", "none");
-            select(this._container)
-                .selectAll('svg')
-                .style("display", "block");
-            select(this._closeButton)
-                .style("display", "block");
+            select(this._button).style("display", "none");
+            select(this._container).selectAll('svg').style("display", "block");
+            select(this._closeButton).style("display", "block");
+            select(this._legendMain).style("display", "block");
+            select(this._selectorMain).style("display", "block");
         } else {
-            select(this._button)
-                .style("display", "block");
-            select(this._container)
-                .selectAll('svg')
-                .style("display", "none");
-            select(this._closeButton)
-                .style("display", "none");
+            select(this._button).style("display", "block");
+            select(this._container).selectAll('svg').style("display", "none");
+            select(this._closeButton).style("display", "none");
+            select(this._legendMain).style("display", "none");
+            select(this._selectorMain).style("display", "none");
         }
         this._showState = !this._showState;
         if (typeof this._expandCallback === "function") {
