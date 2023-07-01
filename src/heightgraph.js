@@ -196,11 +196,12 @@ export class HeightGraph {
         while(this._optionsSelect.firstChild) this._optionsSelect.removeChild(this._optionsSelect.lastChild);
 
         this._data.forEach((k, idx) => {
-            if (idx === 0) this._optionsSelectInput.value = k.properties.label
+            const label = k.properties.label ? k.properties.label : k.properties.summary
+            if (idx === 0) this._optionsSelectInput.value = label
             let option = document.createElement('li');
             this._optionsSelect.append(option);
             option.setAttribute('value', idx);
-            option.innerHTML = k.properties.label;
+            option.innerHTML = label;
         })
     }
 
