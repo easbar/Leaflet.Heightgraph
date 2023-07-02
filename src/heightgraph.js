@@ -209,7 +209,7 @@ export class HeightGraph {
 
         this._data.forEach((k, idx) => {
             const label = k.properties.label ? k.properties.label : k.properties.summary
-            if (idx === 0) this._optionsSelectInput.value = label
+            if (idx === this._currentSelection) this._optionsSelectInput.value = label
             let option = document.createElement('li');
             this._optionsSelect.append(option);
             option.setAttribute('value', idx);
