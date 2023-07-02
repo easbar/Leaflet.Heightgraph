@@ -114,14 +114,25 @@ export class HeightGraph {
         this._optionsSelect = document.createElement('ul');
         this._selectorMain.append(this._optionsSelect);
         this._optionsSelectInput = document.createElement('input');
-        this._optionsSelectInput.readOnly = true
         this._selectorMain.append(this._optionsSelectInput);
         const arrowIconForInput = document.createElement('span');
         arrowIconForInput.innerHTML = '&#9662;'
         arrowIconForInput.id = 'arrow-icon-for-input'
         this._selectorMain.append(arrowIconForInput);
         this._optionsSelectInput.addEventListener("click", e => {
+            this._optionsSelectInput.select();
+            for (let i = 0; i < this._optionsSelect.children.length; i++)
+                this._optionsSelect.children[i].style.display = ''
             this._optionsSelect.classList.toggle("heightgraph-show");
+        });
+
+        this._optionsSelectInput.addEventListener('input', e => {
+            const filterValue = this._optionsSelectInput.value.toLowerCase();
+            for (let i = 0; i < this._optionsSelect.children.length; i++) {
+                const item = this._optionsSelect.children[i];
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.indexOf(filterValue) > -1 ? '' : 'none';
+            }
         });
 
         this._optionsSelect.addEventListener('click', e => {
