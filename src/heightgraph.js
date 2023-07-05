@@ -3,7 +3,6 @@ import { scaleOrdinal, scaleLinear } from 'd3-scale'
 import { min as d3Min, max as d3Max, bisector } from 'd3-array'
 import { drag } from 'd3-drag'
 import { axisLeft, axisBottom } from 'd3-axis'
-import { format } from 'd3-format'
 import { curveBasis, curveLinear, line, area as d3Area, symbol, symbolTriangle } from 'd3-shape'
 import {
     schemeAccent,
@@ -93,6 +92,68 @@ export class HeightGraph {
             .attr("width", this._width)
             .attr("height", this._height).append("g")
             .attr("transform", "translate(" + this._margin.left + "," + this._margin.top + ")")
+
+        // legend
+        this._legendMain = document.createElement('div');
+        this._legendMain.id = 'heightgraph-legend';
+        this._legend = document.createElement('ul');
+        this._legendMain.append(this._legend)
+        const legendText = document.createElement('span');
+        legendText.id = 'heightgraph-legend-text';
+        legendText.innerHTML = this._getTranslation("legend");
+        this._legendMain.append(legendText)
+        legendText.addEventListener("click", e => {
+            this._legend.classList.toggle("heightgraph-show");
+        });
+        this._container.append(this._legendMain);
+
+        // switch between categories
+        this._selectorMain = document.createElement('div');
+        this._selectorMain.id = 'heightgraph-selector'
+        this._container.append(this._selectorMain);
+        this._optionsSelect = document.createElement('ul');
+        this._selectorMain.append(this._optionsSelect);
+        this._optionsSelectInput = document.createElement('input');
+        this._selectorMain.append(this._optionsSelectInput);
+        const arrowIconForInput = document.createElement('span');
+        arrowIconForInput.innerHTML = '&#9662;'
+        arrowIconForInput.id = 'arrow-icon-for-input'
+        this._selectorMain.append(arrowIconForInput);
+        this._optionsSelectInput.addEventListener("click", e => {
+            this._optionsSelectInput.select();
+            for (let i = 0; i < this._optionsSelect.children.length; i++)
+                this._optionsSelect.children[i].style.display = ''
+            this._optionsSelect.classList.toggle("heightgraph-show");
+        });
+
+        this._optionsSelectInput.addEventListener('input', e => {
+            const filterValue = this._optionsSelectInput.value.toLowerCase();
+            for (let i = 0; i < this._optionsSelect.children.length; i++) {
+                const item = this._optionsSelect.children[i];
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.indexOf(filterValue) > -1 ? '' : 'none';
+            }
+        });
+
+        this._optionsSelect.addEventListener('click', e => {
+            this._optionsSelectInput.value = e.target.textContent;
+            this._optionsSelect.classList.remove("heightgraph-show");
+
+            const idx = this._currentSelection = e.target.getAttribute('value');
+            if (this._categories.length === 0) return;
+            if (typeof this._chooseSelectionCallback === "function") {
+                this._chooseSelectionCallback(idx, this._categories[idx].info);
+            }
+
+            // todo: no real reason to clear this, but if we keep it we should make sure the horizontal line is not removed
+            this._routeSegmentsSelected([]);
+            this._removeChart();
+            this._createChart(idx);
+            this._removeDragRectangle();
+            if (this._rectangle)
+                this._drawDragRectangle(this._rectangle[0], this._rectangle[1]);
+        })
+
         if (this._expand) this._expandContainer();
     }
 
@@ -139,7 +200,21 @@ export class HeightGraph {
         if (Object.keys(data).length !== 0) {
             this._createChart(this._currentSelection);
         }
-        this._createSelectionBox();
+        this._createOptions();
+    }
+
+    _createOptions() {
+        // remove previously added options
+        while(this._optionsSelect.firstChild) this._optionsSelect.removeChild(this._optionsSelect.lastChild);
+
+        this._data.forEach((k, idx) => {
+            const label = k.properties.label ? k.properties.label : k.properties.summary
+            if (idx === this._currentSelection) this._optionsSelectInput.value = label
+            let option = document.createElement('li');
+            this._optionsSelect.append(option);
+            option.setAttribute('value', idx);
+            option.innerHTML = label;
+        })
     }
 
     _stopPropagation() {
@@ -290,21 +365,17 @@ export class HeightGraph {
             this._showState = false;
         }
         if (!this._showState) {
-            select(this._button)
-                .style("display", "none");
-            select(this._container)
-                .selectAll('svg')
-                .style("display", "block");
-            select(this._closeButton)
-                .style("display", "block");
+            select(this._button).style("display", "none");
+            select(this._container).selectAll('svg').style("display", "block");
+            select(this._closeButton).style("display", "block");
+            select(this._legendMain).style("display", "block");
+            select(this._selectorMain).style("display", "block");
         } else {
-            select(this._button)
-                .style("display", "block");
-            select(this._container)
-                .selectAll('svg')
-                .style("display", "none");
-            select(this._closeButton)
-                .style("display", "none");
+            select(this._button).style("display", "block");
+            select(this._container).selectAll('svg').style("display", "none");
+            select(this._closeButton).style("display", "none");
+            select(this._legendMain).style("display", "none");
+            select(this._selectorMain).style("display", "none");
         }
         this._showState = !this._showState;
         if (typeof this._expandCallback === "function") {
@@ -743,184 +814,27 @@ export class HeightGraph {
     }
 
     /**
-     * Appends a selection box for different blocks
-     */
-    _createSelectionBox() {
-        const svg = select(this._container).select("svg")
-        const width = this._width - this._margin.right,
-            height = this._height - this._margin.bottom
-        const verticalItemPosition = height + this._margin.bottom / 2 + 6
-        const jsonTriangles = [
-            {
-                "x": width - 25,
-                "y": verticalItemPosition + 3,
-                "color": "#000",
-                "type": symbolTriangle,
-                "id": "leftArrowSelection",
-                "angle": 0
-            }, {
-                "x": width - 10,
-                "y": verticalItemPosition,
-                "color": "#000",
-                "type": symbolTriangle,
-                "id": "rightArrowSelection",
-                "angle": 180
-            }
-        ]
-        // Use update pattern to update existing symbols in case of resize
-        let selectionSign = svg.selectAll(".select-symbol").data(jsonTriangles);
-        // remove any existing selection first
-        selectionSign.remove();
-        // select again
-        selectionSign = svg.selectAll(".select-symbol").data(jsonTriangles)
-        // then add only if needed
-        if (this._data.length > 1) {
-            selectionSign.enter().
-            append("path").
-            merge(selectionSign).
-            attr("class", "select-symbol").
-            attr("d", symbol().type(d => d.type)).
-            attr("transform", d => "translate(" + d.x + "," + d.y + ") rotate(" + d.angle + ")").
-            attr("id", d => d.id).style("fill", d => d.color).
-            on("mousedown", (event, d) => {
-                this._arrowClick = true
-                if (d.id === "rightArrowSelection") arrowRight()
-                if (d.id === "leftArrowSelection") arrowLeft()
-            })
-        }
-        const chooseSelection = (id) => {
-            if (this._selectionText) this._selectionText.remove();
-            // after cleaning up, there is nothing left to do if there is no data
-            if (this._categories.length === 0) return;
-            const type = this._categories[id].info
-            if (typeof this._chooseSelectionCallback === "function") {
-                this._chooseSelectionCallback(id, type);
-            }
-            const data = [
-                {
-                    "selection": type.text
-                }
-            ]
-            this._selectionText = svg.selectAll('selection_text')
-                .data(data)
-                .enter()
-                .append('text')
-                .attr("x", width - 35)
-                .attr("y", verticalItemPosition + 4)
-                .text(d => d.selection)
-                .attr("class", "select-info")
-                .attr("id", "selectionText")
-                .attr("text-anchor", "end")
-        }
-
-        chooseSelection(this._currentSelection);
-
-        let arrowRight = () => {
-            let idx = this._currentSelection += 1
-            if (idx === this._categories.length) {
-                this._currentSelection = idx = 0
-            }
-            chooseSelection(idx)
-            // todo: no real reason to clear this, but if we keep it we should make sure the horizontal line is not removed
-            this._routeSegmentsSelected([])
-            this._removeChart()
-            this._createChart(idx)
-            this._removeDragRectangle()
-            if (this._rectangle)
-                this._drawDragRectangle(this._rectangle[0], this._rectangle[1])
-        }
-
-        let arrowLeft = () => {
-            let idx = this._currentSelection -= 1
-            if (idx === -1) {
-                this._currentSelection = idx = this._categories.length - 1
-            }
-            chooseSelection(idx)
-            this._routeSegmentsSelected([])
-            this._removeChart()
-            this._createChart(idx)
-            this._removeDragRectangle()
-            if (this._rectangle)
-                this._drawDragRectangle(this._rectangle[0], this._rectangle[1])
-        }
-    }
-
-    /**
      * Creates and appends legend to chart
      */
     _createLegend() {
-        const data = []
-        if (this._categories.length > 0) {
+        // remove previous data
+        while(this._legend.firstChild) this._legend.removeChild(this._legend.lastChild);
+
+        if (this._categories.length > 0)
             for (let item in this._categories[this._currentSelection].legend) {
-                data.push(this._categories[this._currentSelection].legend[item]);
+                const data = this._categories[this._currentSelection].legend[item]
+                const el = document.createElement('li')
+                this._legend.append(el)
+
+                const iconEl = document.createElement('span')
+                iconEl.style.backgroundColor = data.color
+                iconEl.id = 'heightgraph-legend-icon'
+                el.append(iconEl)
+
+                const textEl = document.createElement('span')
+                textEl.innerHTML = data.text; // data.type
+                el.append(textEl)
             }
-        }
-        const height = this._height - this._margin.bottom
-        const verticalItemPosition = height + this._margin.bottom / 2
-        const leg = [
-            {
-                "text": this._getTranslation("legend")
-            }
-        ]
-        const legendRectSize = 7
-        const legendSpacing = 7
-        const legend = this._svg.selectAll(".hlegend-hover").data(data).enter().append("g").attr("class", "legend").
-        style("display", "none").attr("transform", (d, i) => {
-            const height = legendRectSize + legendSpacing
-            const offset = height * 2
-            const horizontal = legendRectSize - 15
-            const vertical = i * height - offset
-            return "translate(" + horizontal + "," + vertical + ")"
-        })
-        const legendRect = legend.append('rect')
-            .attr('class', 'legend-rect')
-            .attr('x', 15)
-            .attr('y', 6 * 6)
-            .attr('width', 6)
-            .attr('height', 6);
-        if (Object.keys(this._graphStyle).length !== 0) {
-            Object.entries(this._graphStyle).forEach(([prop, val]) => legendRect.style(prop, val))
-            legendRect
-                .style('stroke', (d, i) => d.color)
-                .style('fill', (d, i) => d.color);
-        } else {
-            legendRect.style('stroke', 'black')
-                .style('fill', (d, i) => d.color);
-        }
-        legend.append('text')
-            .attr('class', 'legend-text')
-            .attr('x', 30)
-            .attr('y', 6 * 7)
-            .text((d, i) => {
-                const textProp = d.text
-                this._boxBoundY = (height - (2 * height / 3) + 7) * i;
-                return textProp;
-            });
-        let legendHover = this._svg.selectAll('.legend-hover')
-            .data(leg)
-            .enter()
-            .append('g')
-            .attr('class', 'legend-hover');
-        this._showLegend = false
-        legendHover.append('text')
-            .attr('x', 15)
-            .attr('y', verticalItemPosition)
-            .attr('text-anchor', "start")
-            .text((d, i) => d.text)
-            .on('mouseover', () => {
-                selectAll('.legend')
-                    .style("display", "block");
-            })
-            .on('mouseleave', () => {
-                if (!this._showLegend) {
-                    selectAll('.legend')
-                        .style("display", "none");
-                }
-            })
-            .on('click', () => {
-                this._showLegend = !this._showLegend
-            })
-        ;
     }
 
     /**
